@@ -37,6 +37,10 @@ public final class CultivarLootModifier extends LootModifier {
         if (seed == null) return loot;
         loot.removeIf(stack -> stack.is(seed));
         boolean mature = isMature(state, cultivar.maturityRule());
+        // A kelp column has one propagating head.  Its body segments can be removed in either
+        // direction by players or automation, so treating them as immature crops would create a
+        // propagation decision for every segment instead of one for the plant.
+        if (cultivar.maturityRule().equals("top-segment") && !mature) return loot;
         boolean inOrigin = cultivar.originDimensions().contains(dimension.toString());
         boolean persistentHarvest = cultivar.growthForm().equals("persistent-harvest");
         int count = !mature
@@ -56,10 +60,24 @@ public final class CultivarLootModifier extends LootModifier {
     }
 
     static boolean isMature(BlockState state, String rule) {
-        if (rule.equals("always-mature") || rule.equals("fruit-block") || rule.equals("top-segment")) return true;
+        if (rule.equals("always-mature")) return true;
+        ResourceLocation blockId = ForgeRegistries.BLOCKS.getKey(state.getBlock());
+        String blockName = blockId == null ? "" : blockId.toString();
+        if (rule.equals("top-segment")) return isKelpHead(blockName);
+        if (rule.equals("fruit-block")) {
+            // Attached melon and pumpkin stems have already produced fruit.  An ordinary stem
+            // only earns the mature propagation range at its own maximum age.
+            if (isAttachedGourdStem(blockName)) return true;
+            if (isOrdinaryGourdStem(blockName)) return maximumAge(state);
+            return true;
+        }
+        return maximumAgeOrRuleFallback(state, rule);
+    }
+
+    private static boolean maximumAgeOrRuleFallback(BlockState state, String rule) {
         for (var property : state.getProperties()) {
             if (property instanceof IntegerProperty integer && property.getName().equals("age")) {
-                return state.getValue(integer) >= integer.getPossibleValues().stream().mapToInt(Integer::intValue).max().orElse(0);
+                return isAtMaximumAge(state.getValue(integer), integer.getPossibleValues().stream().mapToInt(Integer::intValue).max().orElse(0));
             }
             if (property instanceof BooleanProperty booleanProperty && property.getName().equals("berries")) {
                 return state.getValue(booleanProperty);
@@ -67,6 +85,24 @@ public final class CultivarLootModifier extends LootModifier {
         }
         return !rule.contains("immature");
     }
+
+    private static boolean maximumAge(BlockState state) {
+        for (var property : state.getProperties()) {
+            if (property instanceof IntegerProperty integer && property.getName().equals("age")) {
+                return isAtMaximumAge(state.getValue(integer), integer.getPossibleValues().stream().mapToInt(Integer::intValue).max().orElse(0));
+            }
+        }
+        return false;
+    }
+
+    static boolean isKelpHead(String blockId) { return blockId.equals("minecraft:kelp"); }
+    static boolean isAttachedGourdStem(String blockId) {
+        return blockId.equals("minecraft:attached_melon_stem") || blockId.equals("minecraft:attached_pumpkin_stem");
+    }
+    static boolean isOrdinaryGourdStem(String blockId) {
+        return blockId.equals("minecraft:melon_stem") || blockId.equals("minecraft:pumpkin_stem");
+    }
+    static boolean isAtMaximumAge(int age, int maximumAge) { return age >= maximumAge; }
 
     @Override public Codec<? extends IGlobalLootModifier> codec() { return CODEC; }
 }

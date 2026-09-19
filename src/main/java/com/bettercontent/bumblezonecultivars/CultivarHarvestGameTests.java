@@ -14,6 +14,14 @@ import java.util.UUID;
 @GameTestHolder(BumblezoneCultivars.MOD_ID) @PrefixGameTestTemplate(false)
 public final class CultivarHarvestGameTests {
  public static final class Probe {final UUID owner;int count;Probe(UUID owner){this.owner=owner;}@SubscribeEvent public void harvest(CultivarHarvestEvent event){if(event.owner.equals(owner))count++;}}
+ @GameTest(template="empty",timeoutTicks=20) public static void maturityUsesActualKelpAndGourdStates(GameTestHelper helper){
+  helper.assertTrue(CultivarLootModifier.isMature(Blocks.KELP.defaultBlockState(),"top-segment"),"Kelp head was not eligible for its one propagation decision");
+  helper.assertTrue(!CultivarLootModifier.isMature(Blocks.KELP_PLANT.defaultBlockState(),"top-segment"),"Kelp body segment made an extra propagation decision");
+  helper.assertTrue(!CultivarLootModifier.isMature(Blocks.MELON_STEM.defaultBlockState(),"fruit-block"),"Young ordinary stem was mature");
+  helper.assertTrue(CultivarLootModifier.isMature(Blocks.MELON_STEM.defaultBlockState().setValue(StemBlock.AGE,StemBlock.MAX_AGE),"fruit-block"),"Maximum-age ordinary stem was not mature");
+  helper.assertTrue(CultivarLootModifier.isMature(Blocks.ATTACHED_MELON_STEM.defaultBlockState(),"fruit-block"),"Attached stem was not explicitly mature");
+  helper.succeed();
+ }
  @GameTest(template="empty",timeoutTicks=100) public static void harvestRequiresSourcedPlantingAndRealProduce(GameTestHelper helper){
   var level=helper.getLevel();var player=FakePlayerFactory.get(level,new com.mojang.authlib.GameProfile(UUID.randomUUID(),"cultivar-harvest"));var pos=helper.absolutePos(new BlockPos(2,1,2));
   var young=Blocks.WHEAT.defaultBlockState();var mature=young.setValue(CropBlock.AGE,7);
