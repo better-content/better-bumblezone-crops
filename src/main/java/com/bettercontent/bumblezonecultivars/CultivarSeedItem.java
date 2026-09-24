@@ -3,15 +3,26 @@ package com.bettercontent.bumblezonecultivars;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraftforge.registries.ForgeRegistries;
+import java.util.List;
 
 public final class CultivarSeedItem extends Item {
     private final ResourceLocation plant;
     public CultivarSeedItem(String plant) { super(new Properties()); this.plant = new ResourceLocation(plant); }
+
+    @Override public void appendHoverText(net.minecraft.world.item.ItemStack stack, Level level,
+                                          List<Component> tooltip, TooltipFlag flag) {
+        String key = FirethornCuePolicy.tooltipKey(plant.toString());
+        if (key != null) tooltip.add(Component.translatable(key));
+        super.appendHoverText(stack, level, tooltip, flag);
+    }
 
     @Override public InteractionResult useOn(UseOnContext context) {
         Block block = ForgeRegistries.BLOCKS.getValue(plant);

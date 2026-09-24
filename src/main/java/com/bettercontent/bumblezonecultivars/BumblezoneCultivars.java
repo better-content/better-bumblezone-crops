@@ -77,6 +77,7 @@ public final class BumblezoneCultivars {
             bus.addListener(CultivarClient::registerItemColors);
         });
         MinecraftForge.EVENT_BUS.register(CultivarChunkFinalizer.class);
+        MinecraftForge.EVENT_BUS.register(RootminEcologyHandler.class);
         MinecraftForge.EVENT_BUS.register(EdiblePlantingBlocker.class);
         MinecraftForge.EVENT_BUS.register(SeedTradeBlocker.class);
     }

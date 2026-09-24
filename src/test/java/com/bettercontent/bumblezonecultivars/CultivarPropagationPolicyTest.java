@@ -29,6 +29,27 @@ class CultivarPropagationPolicyTest {
         assertNotEquals(selected, CultivarChunkFinalizer.siteSelectionIndex(913580L, bumblezone, first, 1_000_003));
         assertNotEquals(selected, CultivarChunkFinalizer.siteSelectionIndex(913579L, new ResourceLocation("minecraft", "overworld"), first, 1_000_003));
     }
+
+    @Test void firethornEcologySitesAreSparseAndReproducible() {
+        ResourceLocation bumblezone = new ResourceLocation("the_bumblezone", "the_bumblezone");
+        BlockPos site = new BlockPos(13, 78, -21);
+        boolean selected = FirethornEcologyPolicy.shouldPlaceAtSite(913579L, bumblezone, site);
+        assertEquals(selected, FirethornEcologyPolicy.shouldPlaceAtSite(913579L, bumblezone, site));
+
+        int selectedSites = 0;
+        int otherWorldSites = 0;
+        for (int x = 0; x < 256; x++) {
+            if (FirethornEcologyPolicy.shouldPlaceAtSite(913579L, bumblezone, new BlockPos(x, 78, -21))) selectedSites++;
+            if (FirethornEcologyPolicy.shouldPlaceAtSite(913580L, bumblezone, new BlockPos(x, 78, -21))) otherWorldSites++;
+        }
+        assertTrue(selectedSites > 8 && selectedSites < 40, "sparse deterministic policy selected " + selectedSites + " of 256 sites");
+        assertTrue(otherWorldSites > 8 && otherWorldSites < 40, "sparse deterministic policy selected " + otherWorldSites + " of 256 sites in the other world");
+        assertNotEquals(selectedSites, otherWorldSites, "world seed should change the stable site pattern");
+        assertTrue(FirethornEcologyPolicy.cardinalStart(site) >= 0 && FirethornEcologyPolicy.cardinalStart(site) < 4);
+        assertTrue(FirethornEcologyPolicy.mayPlace(0, true));
+        assertFalse(FirethornEcologyPolicy.mayPlace(0, false), "Goety is optional");
+        assertFalse(FirethornEcologyPolicy.mayPlace(1, true), "successful hostile planting is capped per chunk");
+    }
     @Test void immaturePlantsYieldOneSeedInEveryDimension() {
         assertEquals(1, CultivarLootModifier.seedCount(false, false, false, 0, 0.0F));
         assertEquals(1, CultivarLootModifier.seedCount(false, true, false, 2, 0.0F));
