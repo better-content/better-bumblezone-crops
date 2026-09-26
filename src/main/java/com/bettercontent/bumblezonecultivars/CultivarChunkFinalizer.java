@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -53,20 +54,24 @@ public final class CultivarChunkFinalizer {
             placed++;
             if (FirethornEcologyPolicy.mayPlace(firethornPlaced, firethorn != null)
                     && FirethornEcologyPolicy.shouldPlaceAtSite(worldSeed, dimension, hostPos)) {
-                firethornPlaced = placeFirethorn(chunk, level, hostPos, firethorn) ? firethornPlaced + 1 : firethornPlaced;
+                firethornPlaced = placeFirethorn(chunk, hostPos, firethorn) ? firethornPlaced + 1 : firethornPlaced;
             }
         }
     }
 
-    private static boolean placeFirethorn(LevelChunk chunk, ServerLevel level, BlockPos nurseryPos, Block firethorn) {
+    private static boolean placeFirethorn(LevelChunk chunk, BlockPos nurseryPos, Block firethorn) {
+        if (!(firethorn instanceof IPlantable plant)) return false;
         int rotation = FirethornEcologyPolicy.cardinalStart(nurseryPos);
         for (int offset = 0; offset < 4; offset++) {
             Direction direction = Direction.from2DDataValue((rotation + offset) & 3);
             BlockPos pos = nurseryPos.relative(direction);
             if ((pos.getX() >> 4) != chunk.getPos().x || (pos.getZ() >> 4) != chunk.getPos().z) continue;
             if (!chunk.getBlockState(pos).isAir()) continue;
+            // BushBlock survival asks for the block below. Read it from this unpublished
+            // chunk; querying the level here recursively waits for this chunk to load.
+            BlockPos soilPos = pos.below();
+            if (!chunk.getBlockState(soilPos).canSustainPlant(chunk, soilPos, Direction.UP, plant)) continue;
             BlockState state = firethorn.defaultBlockState();
-            if (!state.canSurvive(level, pos)) continue;
             chunk.setBlockState(pos, state, false);
             return true;
         }
