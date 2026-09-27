@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
@@ -47,14 +48,22 @@ public final class CultivarLootModifier extends LootModifier {
         if (cultivar.maturityRule().equals("top-segment") && !mature) return loot;
         boolean inOrigin = cultivar.originDimensions().contains(dimension.toString());
         boolean persistentHarvest = cultivar.growthForm().equals("persistent-harvest");
+        BlockPos origin = context.getParamOrNull(LootContextParams.ORIGIN) == null ? null
+                : BlockPos.containing(context.getParamOrNull(LootContextParams.ORIGIN));
+        boolean sourcedPlanting = !inOrigin && origin != null
+                && CultivarPlantings.lookup(context.getLevel(), origin, state) != null;
         int count = cultivar.growthForm().equals("flower")
                 ? flowerSeedCount(inOrigin, context.getRandom().nextFloat())
                 : !mature
-                ? seedCount(false, inOrigin, persistentHarvest, 0, 1.0F)
+                ? seedCount(false, inOrigin, persistentHarvest, sourcedPlanting, 0)
                 : inOrigin
-                        ? seedCount(true, true, persistentHarvest, context.getRandom().nextInt(3), 1.0F)
-                        : seedCount(true, false, persistentHarvest, 0, context.getRandom().nextFloat());
-        if (count > 0) {var stack=new ItemStack(seed,count);CultivarPlantings.source(stack,dimension.toString());loot.add(stack);}
+                        ? seedCount(true, true, persistentHarvest, false, context.getRandom().nextInt(3))
+                        : seedCount(true, false, persistentHarvest, sourcedPlanting, 0);
+        if (count > 0) {
+            var stack = new ItemStack(seed, count);
+            if (inOrigin || sourcedPlanting) CultivarPlantings.source(stack, "the_bumblezone:the_bumblezone");
+            loot.add(stack);
+        }
         return loot;
     }
 
@@ -63,11 +72,11 @@ public final class CultivarLootModifier extends LootModifier {
         return inOrigin ? (roll < 0.5F ? 2 : 1) : (roll < 0.2F ? 1 : 0);
     }
 
-    static int seedCount(boolean mature, boolean inOrigin, boolean persistentHarvest, int originBonus, float offOriginRoll) {
+    static int seedCount(boolean mature, boolean inOrigin, boolean persistentHarvest, boolean sourcedPlanting, int originBonus) {
         if (!inOrigin && persistentHarvest) return 0;
-        if (!mature) return 1;
+        if (!mature) return inOrigin ? 1 : 0;
         if (inOrigin) return 2 + originBonus;
-        return offOriginRoll < 0.10F ? 2 : 1;
+        return sourcedPlanting ? 1 : 0;
     }
 
     static boolean isMature(BlockState state, String rule) {

@@ -52,13 +52,22 @@ public final class CultivarHarvestGameTests {
   boolean drops=level.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS);
   try {
    level.setBlock(pos,mature,3);
-   Block.getDrops(mature,level,pos,null);helper.assertTrue(probe.count==0,"Loot simulation counted as harvest");
+   var sourcedDrops=Block.getDrops(mature,level,pos,null);
+   var daughter=sourcedDrops.stream().filter(stack->stack.is(Items.WHEAT_SEEDS)).findFirst().orElse(ItemStack.EMPTY);
+   helper.assertTrue(daughter.getCount()==1&&daughter.getTag()!=null&&daughter.getTag().getString(CultivarPlantings.ORIGIN).equals("the_bumblezone:the_bumblezone"),"Mature sourced crop must return exactly one lineage-marked seed");
+   helper.assertTrue(probe.count==0,"Loot simulation counted as harvest");
    level.getGameRules().getRule(GameRules.RULE_DOBLOCKDROPS).set(false,level.getServer());
    Block.dropResources(mature,level,pos);helper.assertTrue(probe.count==0,"Disabled drops counted as harvest");
    level.getGameRules().getRule(GameRules.RULE_DOBLOCKDROPS).set(true,level.getServer());
    Block.dropResources(mature,level,pos);helper.assertTrue(probe.count==1,"Actual sourced crop harvest failed to emit");
    Block.dropResources(mature,level,pos);helper.assertTrue(probe.count==1,"Repeated drops reused planting provenance");
-   CultivarPlantings.planted(player,pos,young,new ItemStack(Items.WHEAT_SEEDS));Block.dropResources(mature,level,pos);helper.assertTrue(probe.count==1,"Unsourced seed claimed import history");
+   CultivarPlantings.planted(player,pos,young,daughter);
+   helper.assertTrue(CultivarPlantings.lookup(level,pos,young)!=null,"Returned seed did not preserve planting lineage");
+   var secondGeneration=Block.getDrops(mature,level,pos,null).stream().filter(stack->stack.is(Items.WHEAT_SEEDS)).findFirst().orElse(ItemStack.EMPTY);
+   helper.assertTrue(secondGeneration.getCount()==1&&secondGeneration.getTag()!=null&&secondGeneration.getTag().contains(CultivarPlantings.ORIGIN),"Second generation did not return one marked seed");
+   CultivarPlantings.planted(player,pos,young,new ItemStack(Items.WHEAT_SEEDS));
+   helper.assertTrue(Block.getDrops(mature,level,pos,null).stream().noneMatch(stack->stack.is(Items.WHEAT_SEEDS)),"Unsourced crop produced a seed");
+   Block.dropResources(mature,level,pos);helper.assertTrue(probe.count==1,"Unsourced seed claimed import history");
   } finally {level.getGameRules().getRule(GameRules.RULE_DOBLOCKDROPS).set(drops,level.getServer());MinecraftForge.EVENT_BUS.unregister(probe);}
   helper.succeed();
  }
