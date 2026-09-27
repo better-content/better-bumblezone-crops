@@ -13,18 +13,11 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SeedVisualContractTest {
-    private static final Set<String> DEDICATED_SEEDS = Set.of(
-        "minecraft_carrot_seeds", "minecraft_potato_seeds", "minecraft_sweet_berry_seeds",
-        "minecraft_glow_berry_seeds", "minecraft_brown_mushroom_spores", "minecraft_red_mushroom_spores",
-        "minecraft_kelp_spores", "minecraft_cocoa_cutting", "aether_berry_bush_seeds",
-        "farmersrespite_coffee_seeds", "farmersdelight_onion_seeds", "farmersdelight_rice_seeds",
-        "ubesdelight_garlic_seeds", "ubesdelight_ginger_seeds", "ubesdelight_ube_seeds",
-        "natures_spirit_shiitake_spores", "minecraft_nether_wart_spores", "minecraft_sugar_cane_cutting",
-        "minecraft_cactus_cutting", "minecraft_bamboo_shoots", "ars_nouveau_sourceberry_seeds",
-        "hexerei_belladonna_seeds", "hexerei_mandrake_seeds", "hexerei_mugwort_seeds",
-        "hexerei_yellow_dock_seeds", "natures_spirit_green_bearberry_seeds",
-        "natures_spirit_purple_bearberry_seeds", "natures_spirit_red_bearberry_seeds",
-        "twilightforest_torchberry_seeds", "goety_firethorn_seeds");
+    private static final Set<String> DEDICATED_SEEDS = CultivarCatalog.ALL.stream()
+        .map(CultivarDefinition::seedItem)
+        .filter(id -> id.startsWith(BumblezoneCultivars.MOD_ID + ":"))
+        .map(id -> id.substring(BumblezoneCultivars.MOD_ID.length() + 1))
+        .collect(java.util.stream.Collectors.toUnmodifiableSet());
 
     @Test void tintManifestCoversEveryDedicatedSeedWithDistinctReadableColors() throws Exception {
         JsonObject tints = objectResource("assets/bumblezone_cultivars/seed_tints.json");

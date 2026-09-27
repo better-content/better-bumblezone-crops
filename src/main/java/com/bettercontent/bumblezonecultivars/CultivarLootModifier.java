@@ -8,6 +8,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
@@ -22,6 +24,8 @@ public final class CultivarLootModifier extends LootModifier {
 
     @Override protected @NotNull ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> loot, LootContext context) {
         BlockState state = context.getParamOrNull(LootContextParams.BLOCK_STATE);
+        if (state != null && state.hasProperty(DoublePlantBlock.HALF)
+                && state.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.UPPER) return loot;
         ResourceLocation dimension = context.getLevel().dimension().location();
         ResourceLocation plantId = state == null ? null : ForgeRegistries.BLOCKS.getKey(state.getBlock());
         CultivarDefinition cultivar = plantId == null ? null : CultivarCatalog.byPlant(plantId.toString());
@@ -43,13 +47,20 @@ public final class CultivarLootModifier extends LootModifier {
         if (cultivar.maturityRule().equals("top-segment") && !mature) return loot;
         boolean inOrigin = cultivar.originDimensions().contains(dimension.toString());
         boolean persistentHarvest = cultivar.growthForm().equals("persistent-harvest");
-        int count = !mature
+        int count = cultivar.growthForm().equals("flower")
+                ? flowerSeedCount(inOrigin, context.getRandom().nextFloat())
+                : !mature
                 ? seedCount(false, inOrigin, persistentHarvest, 0, 1.0F)
                 : inOrigin
                         ? seedCount(true, true, persistentHarvest, context.getRandom().nextInt(3), 1.0F)
                         : seedCount(true, false, persistentHarvest, 0, context.getRandom().nextFloat());
         if (count > 0) {var stack=new ItemStack(seed,count);CultivarPlantings.source(stack,dimension.toString());loot.add(stack);}
         return loot;
+    }
+
+    /** Instant-mature flowers need subcritical off-origin propagation to avoid harvest loops. */
+    static int flowerSeedCount(boolean inOrigin, float roll) {
+        return inOrigin ? (roll < 0.5F ? 2 : 1) : (roll < 0.2F ? 1 : 0);
     }
 
     static int seedCount(boolean mature, boolean inOrigin, boolean persistentHarvest, int originBonus, float offOriginRoll) {

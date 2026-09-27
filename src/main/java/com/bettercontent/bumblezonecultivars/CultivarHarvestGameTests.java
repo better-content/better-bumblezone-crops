@@ -2,6 +2,12 @@ package com.bettercontent.bumblezonecultivars;
 import com.bettercontent.bumblezonecultivars.api.event.CultivarHarvestEvent;
 import net.minecraft.gametest.framework.*;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.GameRules;
@@ -14,6 +20,20 @@ import java.util.UUID;
 @GameTestHolder(BumblezoneCultivars.MOD_ID) @PrefixGameTestTemplate(false)
 public final class CultivarHarvestGameTests {
  public static final class Probe {final UUID owner;int count;Probe(UUID owner){this.owner=owner;}@SubscribeEvent public void harvest(CultivarHarvestEvent event){if(event.owner.equals(owner))count++;}}
+ @GameTest(template="empty",timeoutTicks=20) public static void flowersPlantTallAndPropagateWithoutInstantLoops(GameTestHelper helper){
+  var level=helper.getLevel();var player=FakePlayerFactory.get(level,new com.mojang.authlib.GameProfile(UUID.randomUUID(),"flower-seeds"));
+  var pos=helper.absolutePos(new BlockPos(2,1,2));level.setBlock(pos.below(),Blocks.DIRT.defaultBlockState(),3);
+  var seed=new ItemStack(BumblezoneCultivars.DEDICATED_SEEDS.get("minecraft_sunflower_seeds").get(),2);
+  CultivarPlantings.source(seed,"the_bumblezone:the_bumblezone");player.setItemInHand(InteractionHand.MAIN_HAND,seed);
+  var hit=new BlockHitResult(Vec3.atCenterOf(pos.below()),Direction.UP,pos.below(),false);
+  helper.assertTrue(seed.getItem().useOn(new UseOnContext(player,InteractionHand.MAIN_HAND,hit)).consumesAction(),"Sunflower seed did not plant");
+  helper.assertTrue(level.getBlockState(pos).is(Blocks.SUNFLOWER),"Sunflower lower half was not planted");
+  helper.assertTrue(level.getBlockState(pos.above()).getValue(DoublePlantBlock.HALF)==DoubleBlockHalf.UPPER,"Sunflower upper half was not planted");
+  helper.assertTrue(CultivarPlantings.lookup(level,pos,level.getBlockState(pos))!=null,"Sourced flower planting lost provenance");
+  helper.assertTrue(CultivarLootModifier.flowerSeedCount(false,0.19F)==1&&CultivarLootModifier.flowerSeedCount(false,0.2F)==0,"Off-origin flowers must not yield a replacement seed on every instant harvest");
+  helper.assertTrue(CultivarLootModifier.flowerSeedCount(true,0.0F)==2&&CultivarLootModifier.flowerSeedCount(true,0.9F)==1,"Bumblezone flowers must propagate generously");
+  helper.succeed();
+ }
  @GameTest(template="empty",timeoutTicks=20) public static void maturityUsesActualKelpAndGourdStates(GameTestHelper helper){
   helper.assertTrue(CultivarLootModifier.isMature(Blocks.KELP.defaultBlockState(),"top-segment"),"Kelp head was not eligible for its one propagation decision");
   helper.assertTrue(!CultivarLootModifier.isMature(Blocks.KELP_PLANT.defaultBlockState(),"top-segment"),"Kelp body segment made an extra propagation decision");
