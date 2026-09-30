@@ -9,7 +9,7 @@ minecraft {
     runs {
         configureEach { workingDirectory(project.file("run")); property("forge.logging.console.level", "info"); property("mixin.env.remapRefMap","true"); property("mixin.env.refMapRemappingFile","${projectDir}/build/createSrgToMcp/output.srg"); mods { create(property("mod_id") as String) { source(sourceSets.main.get()) } } }
         create("client"); create("server") { arg("--nogui") }
-        create("gameTestServer") { workingDirectory(project.file("run-gametest")); property("forge.enableGameTest","true"); property("forge.gameTestServer","true"); property("forge.enabledGameTestNamespaces","bumblezone_cultivars"); arg("--nogui") }
+        create("gameTestServer") { workingDirectory(project.file("run-gametest")); property("forge.enableGameTest","true"); property("forge.gameTestServer","true"); property("forge.enabledGameTestNamespaces","better_bumblezone_crops"); arg("--nogui") }
     }
 }
 repositories { maven("https://maven.minecraftforge.net"); maven("https://cursemaven.com"); mavenCentral() }
@@ -33,7 +33,7 @@ tasks.processResources {
     inputs.properties(props); filesMatching(listOf("META-INF/mods.toml", "pack.mcmeta")) { expand(props) }
 }
 
-mixin { add(sourceSets.main.get(), "bumblezone_cultivars.refmap.json"); config("bumblezone_cultivars.mixins.json") }
+mixin { add(sourceSets.main.get(), "better_bumblezone_crops.refmap.json"); config("better_bumblezone_crops.mixins.json") }
 
 val syncGameTestStructures by tasks.registering(Copy::class) { from("src/main/resources/gameteststructures"); into("run-gametest/gameteststructures") }
 tasks.matching { it.name.startsWith("prepareRunGameTestServer") }.configureEach { dependsOn(syncGameTestStructures) }

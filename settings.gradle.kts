@@ -1,2 +1,2 @@
 pluginManagement { repositories { gradlePluginPortal(); maven("https://maven.minecraftforge.net"); mavenCentral() } }
-rootProject.name = "bumblezone-cultivars"
+rootProject.name = "better-bumblezone-crops"
