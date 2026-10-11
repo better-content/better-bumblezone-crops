@@ -1,5 +1,11 @@
 # Better Bumblezone Crops
 
+## Scope and authority
+
+This repository owns its mod-specific behavior and authoring inputs. Read [local instructions](AGENTS.md)
+and the [shared documentation/policy index](../../better-content-modpack/docs/README.md).
+
+
 Better Content-owned Forge mod that makes Bumblezone the acquisition origin for cultivatable food flora while preserving portable Overworld farming.
 
 Requires Java 17, Minecraft 1.20.1, and Forge 47.4.13. Build from this repository with its own checked-in Gradle wrapper:

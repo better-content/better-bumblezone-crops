@@ -1,11 +1,9 @@
-# AGENTS.md
+# Better Bumblezone Crops
 
-## Scope
+Forge 1.20.1 / Java 17; mod ID `better_bumblezone_crops`.
+Source changes: `./gradlew verifyFull`; stage: `./gradlew stageRuntimeJar`.
+Artifact: `build/libs/better-bumblezone-crops-<version>.jar`.
 
-This repository contains the Better Content-owned Forge mod **Better Bumblezone Crops**.
-
-- Mod ID: `better_bumblezone_crops`
-- Artifact: `better-bumblezone-crops-<version>.jar`
-- Java 17, Minecraft 1.20.1, Forge 47.4.13
-
-Run `./gradlew verifyFull`, then commit and push coherent changes. Do not commit build output or runtime worlds.
+Read [shared workspace policy](../../better-content-modpack/docs/policies/workspace.md)
+and its linked testing/disposal policies. Docs-only changes use the shared document check
+and `git diff --check`, not unrelated runtime builds.
