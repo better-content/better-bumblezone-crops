@@ -1,15 +1,25 @@
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.util.UUID
+
 plugins { java; id("net.minecraftforge.gradle") version "6.0.54"; id("org.spongepowered.mixin") version "0.7.38" }
 group = "com.bettercontent"
 version = property("mod_version") as String
 base { archivesName.set(property("artifact_name") as String) }
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(17)) }
+// Native worlds are retained, never recycled or placed beneath Gradle's cleanable build tree.
+val gameTestAttempts = project.file("run-gametest/attempts").toPath()
+require(!Files.isSymbolicLink(gameTestAttempts) && !Files.isSymbolicLink(gameTestAttempts.parent)) { "GameTest attempt ancestry must not be a symlink" }
+Files.createDirectories(gameTestAttempts)
+val gameTestAttempt = Files.createDirectory(gameTestAttempts.resolve(UUID.randomUUID().toString())).toFile()
+logger.lifecycle("Native GameTest fresh attempt admitted: ${gameTestAttempt.absolutePath}; existing world=false")
 minecraft {
     mappings("official", property("minecraft_version") as String)
     copyIdeResources = true
     runs {
         configureEach { workingDirectory(project.file("run")); property("forge.logging.console.level", "info"); property("mixin.env.remapRefMap","true"); property("mixin.env.refMapRemappingFile","${projectDir}/build/createSrgToMcp/output.srg"); mods { create(property("mod_id") as String) { source(sourceSets.main.get()) } } }
         create("client"); create("server") { arg("--nogui") }
-        create("gameTestServer") { workingDirectory(project.file("run-gametest")); property("forge.enableGameTest","true"); property("forge.gameTestServer","true"); property("forge.enabledGameTestNamespaces","better_bumblezone_crops"); arg("--nogui") }
+        create("gameTestServer") { workingDirectory(gameTestAttempt); property("forge.enableGameTest","true"); property("forge.gameTestServer","true"); property("forge.enabledGameTestNamespaces","better_bumblezone_crops"); arg("--nogui") }
     }
 }
 repositories { maven("https://maven.minecraftforge.net"); maven("https://cursemaven.com"); mavenCentral() }
@@ -38,5 +48,14 @@ tasks.processResources {
 
 mixin { add(sourceSets.main.get(), "better_bumblezone_crops.refmap.json"); config("better_bumblezone_crops.mixins.json") }
 
-val syncGameTestStructures by tasks.registering(Copy::class) { from("src/main/resources/gameteststructures"); into("run-gametest/gameteststructures") }
+val syncGameTestStructures by tasks.registering(Copy::class) { from("src/main/resources/gameteststructures"); into(gameTestAttempt.resolve("gameteststructures")) }
 tasks.matching { it.name.startsWith("prepareRunGameTestServer") }.configureEach { dependsOn(syncGameTestStructures) }
+tasks.matching { it.name == "runGameTestServer" }.configureEach {
+    (this as JavaExec).workingDir(gameTestAttempt)
+    doFirst {
+        val actual = (this as JavaExec).workingDir
+        require(actual.canonicalFile == gameTestAttempt.canonicalFile) { "Native GameTest working-directory drift: $actual" }
+        require(!Files.exists(gameTestAttempt.resolve("world").toPath(), LinkOption.NOFOLLOW_LINKS)) { "Refusing existing GameTest world: $gameTestAttempt" }
+        logger.lifecycle("Native GameTest launching fresh world: ${gameTestAttempt.resolve("world").absolutePath}; structures=${gameTestAttempt.resolve("gameteststructures").absolutePath}")
+    }
+}

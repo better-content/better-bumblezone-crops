@@ -52,12 +52,62 @@ public final class FlowerGameTests {
             helper.assertTrue(drops.stream().noneMatch(FlowerPolicy::isSeed), "Off-origin relocation generated seed");
             level.removeBlock(pos, false);
         }
-        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.CARROT));
-        level.setBlockAndUpdate(pos.below(), Blocks.FARMLAND.defaultBlockState());
-        var cropEvent = new PlayerInteractEvent.RightClickBlock(player, InteractionHand.MAIN_HAND, pos.below(), hit);
-        EdiblePlantingBlocker.onUseBlock(cropEvent);
-        helper.assertTrue(cropEvent.isCanceled(), "Flower exemption weakened food crop policy");
-        helper.succeed();
+        // Author real fixture illumination only after all native flower conservation checks.
+        level.setBlockAndUpdate(pos.east(), Blocks.GLOWSTONE.defaultBlockState());
+        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(level.getRawBrightness(pos, 0) >= 8,
+                "Native fixture illumination not ready at " + pos + ": " + level.getRawBrightness(pos, 0)))
+            .thenExecute(() -> {
+                player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.CARROT));
+                level.setBlockAndUpdate(pos.below(), Blocks.FARMLAND.defaultBlockState());
+                var cropEvent = new PlayerInteractEvent.RightClickBlock(player, InteractionHand.MAIN_HAND, pos.below(), hit);
+                var target = cropEvent.getPos().relative(cropEvent.getFace());
+                var heldId = ForgeRegistries.ITEMS.getKey(cropEvent.getItemStack().getItem());
+                var matching = CultivarCatalog.ALL.stream().filter(c -> heldId != null && c.produce().contains(heldId.toString())).toList();
+                var diagnostic = new com.google.gson.JsonObject();
+                diagnostic.addProperty("held_id", heldId == null ? "<absent>" : heldId.toString());
+                diagnostic.addProperty("dimension", level.dimension().location().toString());
+                diagnostic.addProperty("target", target.toString());
+                diagnostic.addProperty("face", cropEvent.getFace().toString());
+                diagnostic.addProperty("soil", level.getBlockState(target.below()).toString());
+                diagnostic.addProperty("target_state", level.getBlockState(target).toString());
+                diagnostic.addProperty("headroom", level.getBlockState(target.above()).toString());
+                diagnostic.addProperty("raw_brightness", level.getRawBrightness(target, 0));
+                diagnostic.addProperty("can_see_sky", level.canSeeSky(target));
+                boolean nativeSurvival = Blocks.CARROTS.defaultBlockState().canSurvive(level, target);
+                diagnostic.addProperty("native_carrots_can_survive", nativeSurvival);
+                var catalogue = new com.google.gson.JsonArray();
+                for (var cultivar : matching) {
+                    var row = new com.google.gson.JsonObject();
+                    row.addProperty("id", cultivar.id()); row.addProperty("growth_form", cultivar.growthForm());
+                    row.addProperty("seed_item", cultivar.seedItem()); row.addProperty("plant_blocks", cultivar.plantBlocks().toString());
+                    catalogue.add(row);
+                }
+                diagnostic.add("matched_catalogue", catalogue);
+                EdiblePlantingBlocker.onUseBlock(cropEvent);
+                diagnostic.addProperty("event_canceled", cropEvent.isCanceled());
+                com.mojang.logging.LogUtils.getLogger().info("flower-food-policy-fixture {}", diagnostic);
+                helper.assertTrue(heldId != null && heldId.toString().equals("minecraft:carrot")
+                        && matching.stream().anyMatch(c -> c.id().equals("carrot") && !c.growthForm().equals("flower")
+                            && !c.seedItem().equals(heldId.toString())), "Food crop fixture lacks expected native held item/catalogue: " + diagnostic);
+                helper.assertTrue(nativeSurvival, "Food crop fixture native planting precondition unsatisfied: " + diagnostic);
+                helper.assertTrue(cropEvent.isCanceled(), "Flower exemption weakened food crop policy");
+                // Same lamp, target, held item and observed native light; only soil changes.
+                level.setBlockAndUpdate(target.below(), Blocks.DIRT.defaultBlockState());
+                var dirtEvent = new PlayerInteractEvent.RightClickBlock(player, InteractionHand.MAIN_HAND, pos.below(), hit);
+                boolean dirtSurvival = Blocks.CARROTS.defaultBlockState().canSurvive(level, target);
+                int dirtBrightness = level.getRawBrightness(target, 0);
+                EdiblePlantingBlocker.onUseBlock(dirtEvent);
+                var negative = new com.google.gson.JsonObject();
+                negative.addProperty("target", target.toString()); negative.addProperty("soil", level.getBlockState(target.below()).toString());
+                negative.addProperty("raw_brightness", dirtBrightness); negative.addProperty("native_carrots_can_survive", dirtSurvival);
+                negative.addProperty("event_canceled", dirtEvent.isCanceled());
+                com.mojang.logging.LogUtils.getLogger().info("flower-food-policy-dirt-negative {}", negative);
+                helper.assertTrue(level.getBlockState(pos.east()).is(Blocks.GLOWSTONE)
+                        && dirtBrightness >= 8 && dirtBrightness == diagnostic.get("raw_brightness").getAsInt(), "DIRT negative did not retain actual native illumination: " + negative);
+                helper.assertTrue(heldId.equals(ForgeRegistries.ITEMS.getKey(dirtEvent.getItemStack().getItem())), "DIRT negative held item drift");
+                helper.assertTrue(!dirtSurvival, "DIRT negative unexpectedly permits native carrot survival: " + negative);
+                helper.assertTrue(!dirtEvent.isCanceled(), "Conditional crop blocker canceled a native-unsurvivable DIRT target: " + negative);
+            }).thenSucceed();
     }
 
     @GameTest(template = "empty", timeoutTicks = 20)

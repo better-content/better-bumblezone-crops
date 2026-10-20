@@ -16,6 +16,8 @@ Requires Java 17, Minecraft 1.20.1, and Forge 47.4.13. Build from this repositor
 
 The reobfuscated runtime artifact is `build/libs/better-bumblezone-crops-0.1.0.jar`. Local verification does not authorize deployment or pack tests. Generated build, cache, and runtime data stay untracked.
 
+GameTest configuration atomically admits a unique retained directory under `run-gametest/attempts/<UUID>`; Forge launch preparation and the structure-copy task use that same directory. Launch refuses an existing `world` or a changed working directory, rather than clearing/recycling a saved fixture. The admitted attempt and world paths appear in the verification log. All attempts, failed evidence, and the historical `run-gametest/world` remain retained outside Gradle's cleanable `build/` tree; do not delete them to obtain a green gate. Native food-policy fixture diagnostics distinguish actual planting preconditions from the cancellation assertion; they are not full-pack acceptance.
+
 Licensed under GPL-3.0-or-later; see [LICENSE](LICENSE). Contribution and validation requirements are in [AGENTS.md](AGENTS.md).
 
 Imported-cultivar discovery evidence records Bumblezone seed origin on the harvested seed stack, then saves the planter and planting identity with the Overworld crop position. Only successfully spawned produce from that mature crop emits `CultivarHarvestEvent`; loot previews, disabled drops, untagged seeds, and repeated delivery cannot award it. This currently covers the native block-drop harvest path, including automatic block harvesting; right-click-only harvest adapters do not fabricate an equivalent outcome.
