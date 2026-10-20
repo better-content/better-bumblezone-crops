@@ -30,7 +30,7 @@ public final class CultivarHarvestGameTests {
   helper.assertTrue(level.getBlockState(pos).is(Blocks.SUNFLOWER),"Sunflower lower half was not planted");
   helper.assertTrue(level.getBlockState(pos.above()).getValue(DoublePlantBlock.HALF)==DoubleBlockHalf.UPPER,"Sunflower upper half was not planted");
   helper.assertTrue(CultivarPlantings.lookup(level,pos,level.getBlockState(pos))!=null,"Sourced flower planting lost provenance");
-  helper.assertTrue(CultivarLootModifier.flowerSeedCount(false,0.19F)==1&&CultivarLootModifier.flowerSeedCount(false,0.2F)==0,"Off-origin flowers must not yield a replacement seed on every instant harvest");
+  helper.assertTrue(CultivarLootModifier.flowerSeedCount(false,0.0F)==0&&CultivarLootModifier.flowerSeedCount(false,0.99F)==0,"Off-origin flowers must never yield seeds during relocation");
   helper.assertTrue(CultivarLootModifier.flowerSeedCount(true,0.0F)==2&&CultivarLootModifier.flowerSeedCount(true,0.9F)==1,"Bumblezone flowers must propagate generously");
   helper.succeed();
  }

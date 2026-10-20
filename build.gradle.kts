@@ -20,7 +20,10 @@ val remapBumblezoneDevelopment by tasks.registering(Exec::class) {
     inputs.files(bumblezoneDevelopment); inputs.file("scripts/remap-test-mixin-strings.py"); inputs.file(layout.buildDirectory.file("createSrgToMcp/output.srg")); outputs.file(output)
     doFirst { commandLine("python3","scripts/remap-test-mixin-strings.py",bumblezoneDevelopment.singleFile.absolutePath,layout.buildDirectory.file("createSrgToMcp/output.srg").get().asFile.absolutePath,output.get().asFile.absolutePath) }
 }
-dependencies { compileOnly(fg.deobf("curse.maven:the-bumblezone-362479:8548194")); add(bumblezoneDevelopment.name,fg.deobf("curse.maven:the-bumblezone-362479:8548194")); runtimeOnly(files(layout.buildDirectory.file("development-dependencies/bumblezone-mapped.jar")).builtBy(remapBumblezoneDevelopment)); annotationProcessor("org.spongepowered:mixin:0.8.5:processor"); minecraft("net.minecraftforge:forge:${property("minecraft_version")}-${property("forge_version")}"); testImplementation("org.junit.jupiter:junit-jupiter:5.10.2") }
+dependencies {
+    // Native wild-crop GameTests use the same Farmer's Delight file pinned by the pack.
+    runtimeOnly(fg.deobf("curse.maven:farmers-delight-398521:8007609"))
+    compileOnly(fg.deobf("curse.maven:the-bumblezone-362479:8548194")); add(bumblezoneDevelopment.name,fg.deobf("curse.maven:the-bumblezone-362479:8548194")); runtimeOnly(files(layout.buildDirectory.file("development-dependencies/bumblezone-mapped.jar")).builtBy(remapBumblezoneDevelopment)); annotationProcessor("org.spongepowered:mixin:0.8.5:processor"); minecraft("net.minecraftforge:forge:${property("minecraft_version")}-${property("forge_version")}"); testImplementation("org.junit.jupiter:junit-jupiter:5.10.2") }
 tasks.named<Jar>("jar") { finalizedBy("reobfJar") }
 val stageRuntimeJar by tasks.registering(Copy::class) { dependsOn(tasks.named("reobfJar")); from(layout.buildDirectory.file("reobfJar/output.jar")); into(layout.buildDirectory.dir("libs")); rename { "${base.archivesName.get()}-$version.jar" } }
 tasks.named("assemble") { dependsOn(stageRuntimeJar) }

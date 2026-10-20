@@ -25,10 +25,26 @@ public final class CultivarLootModifier extends LootModifier {
 
     @Override protected @NotNull ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> loot, LootContext context) {
         BlockState state = context.getParamOrNull(LootContextParams.BLOCK_STATE);
-        if (state != null && state.hasProperty(DoublePlantBlock.HALF)
-                && state.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.UPPER) return loot;
+        boolean upperHalf = state != null && state.hasProperty(DoublePlantBlock.HALF)
+                && state.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.UPPER;
         ResourceLocation dimension = context.getLevel().dimension().location();
+        // Sniffer digging creates new flower planting resources, unlike moving an existing
+        // flower or finding one in worldgen. Filter only those outputs, preserving mixed loot.
+        if (!dimension.toString().equals("the_bumblezone:the_bumblezone")
+                && context.getParamOrNull(LootContextParams.THIS_ENTITY) instanceof net.minecraft.world.entity.animal.sniffer.Sniffer) {
+            loot.removeIf(stack -> FlowerPolicy.isFlowerItem(stack) || FlowerPolicy.isSeed(stack)
+                || stack.is(net.minecraft.world.item.Items.TORCHFLOWER_SEEDS) || stack.is(net.minecraft.world.item.Items.PITCHER_POD));
+        }
         ResourceLocation plantId = state == null ? null : ForgeRegistries.BLOCKS.getKey(state.getBlock());
+        // Wild plants are food-only even under shears, Silk Touch or alternate loot producers.
+        // Run this before cultivar/upper-half handling: wild rice uses native paired-half loot.
+        if (plantId != null && WildCropForage.isWild(plantId.toString())) {
+            loot.removeIf(stack -> {
+                var itemId = ForgeRegistries.ITEMS.getKey(stack.getItem());
+                return itemId == null || !WildCropForage.allowsDrop(plantId.toString(), itemId.toString());
+            });
+            return loot;
+        }
         CultivarDefinition cultivar = plantId == null ? null : CultivarCatalog.byPlant(plantId.toString());
         if (cultivar == null) {
             loot.removeIf(stack -> {
@@ -38,9 +54,15 @@ public final class CultivarLootModifier extends LootModifier {
             });
             return loot;
         }
+        if (upperHalf && !cultivar.growthForm().equals("flower")) return loot;
         var seed = ForgeRegistries.ITEMS.getValue(new ResourceLocation(cultivar.seedItem()));
         if (seed == null) return loot;
         loot.removeIf(stack -> stack.is(seed));
+        // Upper halves still undergo seed suppression, but never get a second propagation roll.
+        if (cultivar.growthForm().equals("flower")) {
+            loot.removeIf(stack -> FlowerPolicy.isSeed(stack));
+            if (upperHalf) return loot;
+        }
         boolean mature = isMature(state, cultivar.maturityRule());
         // A kelp column has one propagating head.  Its body segments can be removed in either
         // direction by players or automation, so treating them as immature crops would create a
@@ -53,7 +75,7 @@ public final class CultivarLootModifier extends LootModifier {
         boolean sourcedPlanting = !inOrigin && origin != null
                 && CultivarPlantings.lookup(context.getLevel(), origin, state) != null;
         int count = cultivar.growthForm().equals("flower")
-                ? flowerSeedCount(inOrigin, context.getRandom().nextFloat())
+                ? FlowerPolicy.harvestSeeds(cultivar, loot, inOrigin, context.getRandom())
                 : !mature
                 ? seedCount(false, inOrigin, persistentHarvest, sourcedPlanting, 0)
                 : inOrigin
@@ -67,9 +89,9 @@ public final class CultivarLootModifier extends LootModifier {
         return loot;
     }
 
-    /** Instant-mature flowers need subcritical off-origin propagation to avoid harvest loops. */
+    /** Relocation is free; multiplication (including instant place/break farming) is Bumblezone-only. */
     static int flowerSeedCount(boolean inOrigin, float roll) {
-        return inOrigin ? (roll < 0.5F ? 2 : 1) : (roll < 0.2F ? 1 : 0);
+        return inOrigin ? (roll < 0.5F ? 2 : 1) : 0;
     }
 
     static int seedCount(boolean mature, boolean inOrigin, boolean persistentHarvest, boolean sourcedPlanting, int originBonus) {

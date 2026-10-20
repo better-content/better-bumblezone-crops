@@ -25,12 +25,8 @@ public final class CultivarHarvestBoundary {
   WildDrop wild=null;
   if(world instanceof ServerLevel level&&level.dimension()==Level.OVERWORLD){
    var id=ForgeRegistries.BLOCKS.getKey(state.getBlock());
-   if(actor instanceof ServerPlayer player&&id!=null){
-    String produce=switch(id.toString()){
-     case "farmersdelight:wild_carrots" -> "minecraft:carrot";
-     case "farmersdelight:wild_potatoes" -> "minecraft:potato";
-     default -> null;
-    };
+   if(actor instanceof ServerPlayer player&&!(player instanceof net.minecraftforge.common.util.FakePlayer)&&id!=null){
+    String produce=WildCropForage.PRODUCE.get(id.toString());
     if(produce!=null)wild=new WildDrop(player,position,produce);
    }
    BlockPos anchor=state.hasProperty(DoublePlantBlock.HALF)&&state.getValue(DoublePlantBlock.HALF)==DoubleBlockHalf.UPPER?position.below():position;
