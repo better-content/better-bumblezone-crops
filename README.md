@@ -39,6 +39,11 @@ Ars, has a nonmemoized codec supplier; comparing a newly requested instance gett
 codec is not valid dispatch evidence. Its original-call witness is required instead. Genuinely
 memoized types retain additional direct identity checks. Missing/duplicate/partial witnesses,
 changed inputs and mismatched loaded rows fail closed.
+The native-only pack-selection hook admits the required fixed TOP pack last before Minecraft's
+original repository rebuild. Automatic BUILT_IN selection otherwise preserves its earlier position
+and bypasses default TOP insertion. Every other native pack and its relative order are retained;
+there is no second resource reload, decoder invocation or status forcing. Actual selected TOP,
+effective resource hashes, original dispatch and complete loaded-map observations remain required.
 
 The reobfuscated runtime artifact is `build/libs/better-bumblezone-crops-0.1.0.jar`. Local verification does not authorize deployment or pack tests. Generated build, cache, and runtime data stay untracked.
 

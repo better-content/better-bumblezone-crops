@@ -20,7 +20,7 @@ import java.util.*;
 @Mod.EventBusSubscriber(modid = "better_bumblezone_crops", bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class CanonicalDataFixture {
     private static final String PROPERTY = "bc.crops.canonical.manifest";
-    private static final String PACK_ID = "bc_crops_canonical_source";
+    private static final String PACK_ID = CanonicalPackOrder.PACK_ID;
     private static final int MAX_BYTES = 2 * 1024 * 1024;
     private CanonicalDataFixture() {}
     private static void require(boolean valid, String message) {
@@ -334,7 +334,7 @@ public final class CanonicalDataFixture {
                 var data = manifest();
                 var server = event.getServer();
                 var selected = new ArrayList<>(server.getPackRepository().getSelectedIds());
-                require(!selected.isEmpty() && selected.get(selected.size() - 1).equals(PACK_ID), "Canonical pack is not selected at effective TOP");
+                require(!selected.isEmpty() && selected.get(selected.size() - 1).equals(PACK_ID), "Canonical pack is not selected at effective TOP: " + selected);
                 require(Collections.frequency(selected, PACK_ID) == 1, "Canonical pack duplicated");
                 var pack = server.getPackRepository().getPack(PACK_ID);
                 require(pack != null && pack.isRequired() && pack.isFixedPosition() && pack.getDefaultPosition() == Pack.Position.TOP,
