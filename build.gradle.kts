@@ -63,3 +63,4 @@ tasks.matching { it.name == "runGameTestServer" }.configureEach {
 apply(from = "gradle/native-gametest-fixture.gradle")
 apply(from = "gradle/native-provider-closure.gradle")
 apply(from = "gradle/native-canonical-data.gradle")
+apply(from = "gradle/native-canonical-providers.gradle")

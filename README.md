@@ -17,7 +17,35 @@ Requires Java 17, Minecraft 1.20.1, and Forge 47.4.13. Build from this repositor
 ```
 
 Native verification requires explicit `BC_CANONICAL_PACK_ROOT`, `BC_CANONICAL_ARCHIVES`,
-`BC_CANONICAL_ACTIVITY` and `BC_OWNER_SESSION` bindings. The activity must already register
+`BC_CANONICAL_ACTIVITY`, `BC_OWNER_SESSION` and `BC_CUSTOM_MOD_JAR_DIR` bindings.
+The canonical provider DAG qualifies Compat Fixes and Gameplay Notices first, then supplies their
+exact staged JARs only to `gameTestServer`. There is no sibling-output or historical-JAR fallback.
+The thin Compat JAR has no transitive metadata; the native fixture explicitly supplies its required
+MixinExtras0.5.4 runtime, not an assumed older copy nested in another upstream provider.
+`gradle/native-sdk-roles.json` closes the entire declared SDK as 28 upstream original/API coordinates
+(the existing 26 base providers plus Create and the explicitly hash-pinned MixinExtras API) and two
+native-only canonical producers. Bumblezone's existing dedicated development configuration is included;
+its remapped file is not a new provider. Whole-graph equality precedes original-role projection, and
+extra/missing/duplicate/unknown coordinates fail with complete graph differences. The snapshot retains
+configuration roles, dynamic canonical raw/source-metadata hashes, exact source commits and all peer
+data-resource hashes. Compat's reviewed empty `replace:false, entries:[]` GLM index is explicitly
+classified, not hidden or counted as an original declaration; new/changed peer indexes fail closed.
+The original fixed53 archive model, raw77 rows, selected72 and 11 native tests remain unchanged.
+The trusted Root caller owns qualification through its common build gates; source metadata alone is
+not owning-gate proof. Both Source-control and canonical-release staging are supported without requiring
+a Source-control-only receipt or duplicating Root session/checkpoint authority.
+The native proof binds canonical artifact bytes to actual loaded source-metadata bytes and observes
+the production stateless treasure-urn lookup repair in a fresh, genuine native `LevelChunk` that is
+never registered in the world's cache. Setup uses only that chunk's owned native section palette/counters,
+not `LevelChunk.setBlockState`, whose native implementation would enqueue actual-level lighting work
+and invoke world callbacks even on an unregistered chunk. Actual production `LevelChunk.getBlockEntity`
+with `CHECK` returns null and retains its minimal synthetic marker throughout the control; no cached
+world cell is displaced, no pending tag is purged and no fake tile or cleanup-warning exemption is
+introduced. This is an owned-state lookup control, not a production placement/world-generation proof
+or a universal claim of transformed-runtime neutrality beyond the inspected native ABI. The original global block-entity predicate remains true, the native treasure factory
+remains null, and genuine authored inventory paths remain native; normal urns still have tiles.
+This fixes real protochunk world generation rather than suppressing its failed-promotion warnings;
+Crops contains no copy of the repair. Compat owns independent native loot/storage/legacy controls. The activity must already register
 this repository's output scope before Gradle starts. The owning `prepareCanonicalDataSnapshot`
 task prepares a fresh immutable `.native-fixture-inputs/<native UUID>/` from approved Root and
 hash-pinned raw archives, before any own native preparation; no previous conversation snapshot
@@ -75,7 +103,9 @@ Dimension-aware hooks cover native tall flowers/petals (including inherited over
 
 The SOURCE SDK declares the exact production BOTH pins for all18 namespaces required by the
 unconditional origin/seeds tags, plus existing Bumblezone and seven mandatory transitives
-(Blueprint, Citadel, Curios, GeckoLib, Moonlight, TerraBlender, Zeta):26 native providers total.
+(Blueprint, Citadel, Curios, GeckoLib, Moonlight, TerraBlender, Zeta):26 base third-party providers.
+Production Create with its own JarJar graph and the two canonical custom providers above attach
+additionally only to the native fixture; they add no shipped Crops dependency or optional acceptance lane.
 `gradle/native-provider-closure.gradle` adds only the missing24; Farmer's Delight and the existing
 Bumblezone remap stay unchanged. No shipped mod dependency, tag ID, required flag or11-test coverage
 is reduced. Both latest/DEBUG logs reject ERROR/FATAL and actual loot-modifier failed WARNs.

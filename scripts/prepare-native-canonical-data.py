@@ -27,8 +27,18 @@ def checked_file(path):
     return path.read_bytes()
 
 
+def verify_sdk_roles(data):
+    import canonical_sdk_roles
+    for path, digest in data['sdk_role_inputs'].items():
+        assert sha(checked_file(Path(path))) == digest, 'SDK role input changed: ' + path
+    binding = json.loads(checked_file(Path(data['sdk_bindings_path'])))
+    roles = canonical_sdk_roles.validate(binding, json.loads(checked_file(REPO/'gradle/native-sdk-roles.json')))
+    assert roles == data['sdk_role_binding'], 'SDK role projection changed'
+
+
 def verify(manifest):
     data = json.loads(checked_file(manifest))
+    verify_sdk_roles(data)
     scope = json.loads(checked_file(SCOPE))
     assert data['schema'] == 'bc.crops_canonical_snapshot.v2' and data['global_index_projected'] is True
     assert data['scope_sha256'] == sha(SCOPE.read_bytes())
@@ -73,6 +83,7 @@ if __name__ == '__main__':
     parser.add_argument('--attempt')
     parser.add_argument('--task')
     parser.add_argument('--owner')
+    parser.add_argument('--sdk-bindings-stdin', action='store_true')
     args = parser.parse_args()
     if args.verify:
         data = verify(args.verify.absolute())
@@ -87,6 +98,21 @@ if __name__ == '__main__':
         scope = json.loads(scope_bytes)
         assert len(scope['resources']) == len(set(scope['resources'])) == 10
         assert INDEX not in scope['resources'], 'Transformed policy is separate from byte-identical ordinary inputs'
+        assert args.sdk_bindings_stdin, 'Owning preparation requires actual whole SDK role bindings'
+        import sys
+        import canonical_sdk_roles
+        binding_bytes = sys.stdin.buffer.read(4 * 1024 * 1024 + 1)
+        assert 0 < len(binding_bytes) <= 4 * 1024 * 1024, 'Missing/oversize SDK role binding'
+        role_inputs = {}
+        def role_read(path):
+            path = Path(path).absolute()
+            raw = checked_file(path)
+            role_inputs[str(path)] = sha(raw)
+            return raw
+        for name in ('gradle/native-sdk-roles.json', 'gradle/native-sdk-roles.gradle', 'gradle/native-canonical-providers.gradle', 'scripts/canonical_sdk_roles.py', 'scripts/prepare-native-canonical-data.py'):
+            role_read(REPO/name)
+        sdk_roles = canonical_sdk_roles.validate(json.loads(binding_bytes),
+            json.loads(role_read(REPO/'gradle/native-sdk-roles.json')), role_read)
         destination = REPO/'.native-fixture-inputs'/args.attempt
         for p in [destination, *destination.parents]:
             assert not p.is_symlink(), 'Snapshot ancestry is a symlink'
@@ -132,10 +158,14 @@ if __name__ == '__main__':
                 f.write(raw)
             p.chmod(0o444)
         (pack/'pack.mcmeta').write_text(json.dumps(dict(pack=dict(pack_format=15, description=scope['pack_id'])))+'\n')
+        binding_path = destination/'sdk-bindings.json'
+        binding_path.write_bytes(binding_bytes)
+        role_inputs[str(binding_path)] = sha(binding_bytes)
         manifest = destination/'manifest.json'
         manifest.write_text(json.dumps(dict(schema='bc.crops_canonical_snapshot.v2', attempt=args.attempt,
             root=str(root), archives=str(args.archives.absolute()), root_head=head, scope_sha256=sha(scope_bytes), pack_id=scope['pack_id'],
-            pack_format=15, resources=rows, context_inputs=context, projection=projection, global_index_projected=True), indent=2)+'\n')
+            pack_format=15, resources=rows, context_inputs=context, projection=projection, global_index_projected=True,
+            sdk_role_inputs=role_inputs, sdk_role_binding=sdk_roles, sdk_bindings_path=str(binding_path)), indent=2)+'\n')
         verify(manifest)
         for p in destination.rglob('*'):
             p.chmod(0o555 if p.is_dir() else 0o444)

@@ -1,0 +1,146 @@
+{
+  "schema": "bc.canonical_sdk_roles.v1",
+  "extra_declaration_configurations": [
+    "bumblezoneDevelopment"
+  ],
+  "roles": [
+    {
+      "coordinate": "bettercontent.local.crops:better-compat-fixes:0.1.9",
+      "role": "canonical_producer",
+      "repository": "better-compat-fixes",
+      "mod_id": "better_compat_fixes",
+      "artifact": "better-compat-fixes-0.1.9.jar",
+      "reviewed_glm_indexes": {
+        "data/forge/loot_modifiers/global_loot_modifiers.json": {
+          "sha256": "26bfe32a9cfd700841860980530ca1b01d3f02966be36d273398cb49d5f64df0",
+          "replace": false,
+          "entries": []
+        }
+      }
+    },
+    {
+      "coordinate": "bettercontent.local.crops:better-gameplay-notices:1.0.0",
+      "role": "canonical_producer",
+      "repository": "better-gameplay-notices",
+      "mod_id": "better_gameplay_notices",
+      "artifact": "better-gameplay-notices-1.0.0.jar"
+    },
+    {
+      "coordinate": "curse.maven:aether-255308:6134920",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:ars-elemental-561470:8399870",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:ars-nouveau-401955:6688854",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:blueprint-382216:6408581",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:born-in-chaos-686437:7917933",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:citadel-331936:7476570",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:create-328085:7178761",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:curios-309927:6418456",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:farmers-delight-398521:8007609",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:farmers-respite-551453:5543547",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:geckolib-388172:7553267",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:genetic-animals-313213:6134040",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:goety-586095:8087429",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:hexerei-548599:6314111",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:ice-and-fire-dragons-264231:5633453",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:natures-spirit-1044992:6962783",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:project-vibrant-journeys-300297:7917640",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:quark-243121:6427817",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:selene-499980:8261419",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:supplementaries-412082:7884611",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:terrablender-563928:6290448",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:the-bumblezone-362479:8548194",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:the-deep-void-982999:8507128",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:the-twilight-forest-227639:5468648",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:ubes-delight-903894:7734900",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:upgrade-aquatic-326895:6393133",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "curse.maven:zeta-968868:7335229",
+      "role": "upstream_original"
+    },
+    {
+      "coordinate": "io.github.llamalad7:mixinextras-forge:0.5.4",
+      "role": "upstream_api",
+      "explicit_api_archive": true,
+      "sha256": "7922899a121a27f63a69a9ffe57470d8719cc52d239dfa9408e15d32a7b4c264"
+    }
+  ],
+  "declared_file_dependencies": [
+    "runtimeOnly|build/development-dependencies/bumblezone-mapped.jar"
+  ]
+}

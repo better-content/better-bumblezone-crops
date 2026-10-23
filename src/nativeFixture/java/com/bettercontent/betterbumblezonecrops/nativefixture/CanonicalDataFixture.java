@@ -365,6 +365,7 @@ public final class CanonicalDataFixture {
                 proof.addProperty("attempt", data.get("attempt").getAsString());
                 proof.addProperty("phase", "ServerStartingEvent_BEFORE_GAMETESTS");
                 proof.addProperty("globalIndexProjected", true);
+                proof.add("canonicalProviders", CanonicalCompatProviderProof.observe(event.getServer()));
                 proof.add("glmProjection", publishGlmScalars());
                 proof.add("selectedOrder", new Gson().toJsonTree(selected));
                 proof.add("resources", proofRows);

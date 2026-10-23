@@ -60,9 +60,14 @@ tasks.register('prepareCanonicalDataSnapshot') {
                 .collectEntries { name -> [(name): providers.environmentVariable(name).orNull] }
             if (bindings.values().any { it == null || it.trim().isEmpty() })
                 throw new GradleException('Required canonical native inputs missing: explicit BC_CANONICAL_PACK_ROOT, BC_CANONICAL_ARCHIVES, BC_CANONICAL_ACTIVITY and BC_OWNER_SESSION. Register owning output scope before Gradle. No sibling checkout inference or conversation snapshot dependency.')
-            project.exec { commandLine('python3', '-B', 'scripts/prepare-native-canonical-data.py',
-                '--root', bindings.BC_CANONICAL_PACK_ROOT, '--archives', bindings.BC_CANONICAL_ARCHIVES,
-                '--attempt', token, '--task', bindings.BC_CANONICAL_ACTIVITY, '--owner', bindings.BC_OWNER_SESSION) }
+            def sdkBindings = groovy.json.JsonOutput.toJson(project.ext.bcCanonicalSdkRoles()).getBytes('UTF-8')
+            project.exec {
+                standardInput = new ByteArrayInputStream(sdkBindings)
+                commandLine('python3', '-B', 'scripts/prepare-native-canonical-data.py',
+                    '--root', bindings.BC_CANONICAL_PACK_ROOT, '--archives', bindings.BC_CANONICAL_ARCHIVES,
+                    '--attempt', token, '--task', bindings.BC_CANONICAL_ACTIVITY, '--owner', bindings.BC_OWNER_SESSION,
+                    '--sdk-bindings-stdin')
+            }
         }
         if (!snapshot.isFile()) throw new GradleException('Required canonical snapshot was not prepared')
         verifySnapshot()

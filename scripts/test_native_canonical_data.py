@@ -58,14 +58,16 @@ class CanonicalControls(unittest.TestCase):
         return directory, manifest, data
 
     def verify_with_synthetic_git(self, manifest, dirty=False):
-        original, original_projection = prepare.git, prepare.fixed_glm.verify
+        original, original_projection, original_roles = prepare.git, prepare.fixed_glm.verify, prepare.verify_sdk_roles
+        # Role admission is separately exercised by test_canonical_sdk_roles, never by this IO fixture.
+        prepare.verify_sdk_roles = lambda data: None
         prepare.git = lambda root, *args: ('dirty' if dirty else '') if args[0] == 'status' else 'synthetic_blob'
         # This fixture tests snapshot IO/oracles only, NOT real Root/archive/Native closure.
         prepare.fixed_glm.verify = lambda root, archives: ({'synthetic_control_only': True}, b'{"replace":true,"entries":[]}', (Path(root)/'kubejs'/prepare.INDEX).read_bytes())
         try:
             return prepare.verify(manifest)
         finally:
-            prepare.git, prepare.fixed_glm.verify = original, original_projection
+            prepare.git, prepare.fixed_glm.verify, prepare.verify_sdk_roles = original, original_projection, original_roles
 
     def test_exact_scope_and_context_not_projected(self):
         directory, manifest, data = self.fixture()
