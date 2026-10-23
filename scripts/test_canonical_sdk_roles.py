@@ -30,6 +30,23 @@ class RoleControls(unittest.TestCase):
         source = (Path(__file__).resolve().parents[1]/'gradle/native-sdk-roles.gradle').read_text()
         self.assertEqual(2, source.count('allDependencies.findAll'))
         self.assertNotIn('.dependencies.findAll', source)
+    def test_known_bumblezone_file_inherited_role_is_exact(self):
+        root = Path(__file__).resolve().parents[1]
+        expected = ['nativeFixtureRuntimeOnly|build/development-dependencies/bumblezone-mapped.jar',
+                    'runtimeOnly|build/development-dependencies/bumblezone-mapped.jar']
+        self.assertEqual(expected, json.loads((root/'gradle/native-sdk-roles.json').read_text())['declared_file_dependencies'])
+        self.assertIn('configurations[fixture.runtimeOnlyConfigurationName].extendsFrom(configurations.runtimeOnly)',
+                      (root/'gradle/native-canonical-data.gradle').read_text())
+        self.spec['declared_file_dependencies'] = expected
+        self.binding['actual_declared_sdk_files'] = expected.copy()
+        roles.validate(self.binding, self.spec)
+        for bad in [expected[:1], expected[1:], expected + [expected[0]],
+                    expected + ['nativeFixtureRuntimeOnly|unexpected.jar'],
+                    expected + ['implementation|build/development-dependencies/bumblezone-mapped.jar']]:
+            with self.subTest(files=bad):
+                self.binding['actual_declared_sdk_files'] = bad
+                with self.assertRaisesRegex(ValueError, 'file dependency'):
+                    roles.validate(self.binding, self.spec)
     def test_positive_dynamic_and_content_disclosure(self):
         result = roles.validate(self.binding,self.spec)
         self.assertEqual(2,len(result['roles']))

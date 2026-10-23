@@ -141,6 +141,7 @@
     }
   ],
   "declared_file_dependencies": [
+    "nativeFixtureRuntimeOnly|build/development-dependencies/bumblezone-mapped.jar",
     "runtimeOnly|build/development-dependencies/bumblezone-mapped.jar"
   ]
 }

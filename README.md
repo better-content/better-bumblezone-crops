@@ -25,7 +25,9 @@ MixinExtras0.5.4 runtime, not an assumed older copy nested in another upstream p
 `gradle/native-sdk-roles.json` closes the entire declared SDK as 28 upstream original/API coordinates
 (the existing 26 base providers plus Create and the explicitly hash-pinned MixinExtras API) and two
 native-only canonical producers. Bumblezone's existing dedicated development configuration is included;
-its remapped file is not a new provider. Whole-graph equality precedes original-role projection, and
+its remapped file is not a new provider. That single physical file has exactly two effective roles:
+`runtimeOnly` and its existing `nativeFixtureRuntimeOnly` descendant. Missing, duplicate or additional
+configuration/file rows remain errors; inherited unknown files are not filtered. Whole-graph equality precedes original-role projection, and
 extra/missing/duplicate/unknown coordinates fail with complete graph differences. The snapshot retains
 configuration roles, dynamic canonical raw/source-metadata hashes, exact source commits and all peer
 data-resource hashes. Compat's reviewed empty `replace:false, entries:[]` GLM index is explicitly
