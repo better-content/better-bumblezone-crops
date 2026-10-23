@@ -279,7 +279,10 @@ public final class CanonicalDataFixture {
                 // Its nonmemoized codec() is deliberately NEVER called. Original dispatch/body witnesses below.
             } else {
                 var actualCodec = loaded.get(i).codec();
-                require(actualCodec != null && registry.getValue(codecId) == actualCodec, "Actual registered codec identity/order missing/different");
+                require(actualCodec != null && registry.getValue(codecId) == actualCodec,
+                    "Actual registered codec identity/order missing/different at ordinal " + i
+                    + "; id=" + row.get("id").getAsString() + "; expectedCodec=" + codecId
+                    + "; loadedClass=" + loaded.get(i).getClass().getName());
                 require(codecId.equals(registry.getKey(actualCodec)), "Actual native codec registry key differs");
             }
             var expectedIds = expectedPackIds(row, ownersByPackId);
