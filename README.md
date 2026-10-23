@@ -33,6 +33,12 @@ identical result, preserving original exceptions. This avoids relying on transfo
 library classes already loaded before mod Mixins. The registered Ars decoder return, exact input,
 body fields, row order and complete loaded-map checks remain required; forwarding/negative unit
 controls do not replace the native proof.
+Every one of the fixed72 rows additionally needs an original registered decoder selection, successful
+root return, canonical input digest and matching loaded implementation/order. Goety `add_loot`, like
+Ars, has a nonmemoized codec supplier; comparing a newly requested instance getter to its registered
+codec is not valid dispatch evidence. Its original-call witness is required instead. Genuinely
+memoized types retain additional direct identity checks. Missing/duplicate/partial witnesses,
+changed inputs and mismatched loaded rows fail closed.
 
 The reobfuscated runtime artifact is `build/libs/better-bumblezone-crops-0.1.0.jar`. Local verification does not authorize deployment or pack tests. Generated build, cache, and runtime data stay untracked.
 

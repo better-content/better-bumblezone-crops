@@ -277,13 +277,14 @@ public final class CanonicalDataFixture {
             if (ars) {
                 require(ArsDispatchLedger.ID.equals(codecId.toString()), "Ars primary codec differs");
                 // Its nonmemoized codec() is deliberately NEVER called. Original dispatch/body witnesses below.
-            } else {
+            }
+            require(registry.getValue(codecId) != null && codecId.equals(registry.getKey(registry.getValue(codecId))),
+                "Actual native codec registry key differs");
+            boolean freshAccessor = ars || codecId.toString().equals("goety:add_loot");
+            if (!freshAccessor) {
                 var actualCodec = loaded.get(i).codec();
-                require(actualCodec != null && registry.getValue(codecId) == actualCodec,
-                    "Actual registered codec identity/order missing/different at ordinal " + i
-                    + "; id=" + row.get("id").getAsString() + "; expectedCodec=" + codecId
-                    + "; loadedClass=" + loaded.get(i).getClass().getName());
-                require(codecId.equals(registry.getKey(actualCodec)), "Actual native codec registry key differs");
+                require(actualCodec != null && registry.getValue(codecId) == actualCodec
+                    && codecId.equals(registry.getKey(actualCodec)), "Actual memoized codec identity/order differs");
             }
             var expectedIds = expectedPackIds(row, ownersByPackId);
             String path = row.get("resource").getAsString();
@@ -298,14 +299,17 @@ public final class CanonicalDataFixture {
             try (var input = resource.open()) {
                 byte[] bytes = input.readNBytes(MAX_BYTES + 1);
                 require(bytes.length <= MAX_BYTES && sha(bytes).equals(row.get("sha256").getAsString()), "Mandatory effective definition absent/stale");
-                if (ars) ArsDispatchProof.requireLoaded(i, loaded.get(i), JsonParser.parseString(new String(bytes, java.nio.charset.StandardCharsets.UTF_8)));
+                var canonicalInput = JsonParser.parseString(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+                OriginalCodecDispatchProof.requireLoaded(i, new ResourceLocation(row.get("id").getAsString()),
+                    codecId, canonicalInput, loaded.get(i));
+                if (ars) ArsDispatchProof.requireLoaded(i, loaded.get(i), canonicalInput);
             }
             var item = row.deepCopy();
             item.addProperty("ordinal", i);
             item.addProperty("actualCodecRegistryKey", codecId.toString());
             item.addProperty("codecIdentityConfirmed", true);
-            item.addProperty("instanceCodecIdentityChecked", !ars);
-            item.addProperty("codecIdentityProofKind", ars ? "ORIGINAL_REGISTERED_DISPATCH_AND_ROOT_BODY" : "MEMOIZED_INSTANCE_CODEC_IDENTITY");
+            item.addProperty("instanceCodecIdentityChecked", !freshAccessor);
+            item.addProperty("codecIdentityProofKind", "ORIGINAL_REGISTERED_DISPATCH_AND_ROOT_BODY");
             item.addProperty("effectiveSourcePackId", resource.sourcePackId());
             item.add("expectedRegisteredSourcePackIds", expectedIds.deepCopy());
             rows.add(item);

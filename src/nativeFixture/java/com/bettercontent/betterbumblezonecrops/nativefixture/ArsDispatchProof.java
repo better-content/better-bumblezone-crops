@@ -45,10 +45,15 @@ public final class ArsDispatchProof {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
     }
     public static void begin() {
-        try { LEDGER.begin(CanonicalDataFixture.codecProofIds()); }
+        try {
+            var ids = CanonicalDataFixture.codecProofIds();
+            LEDGER.begin(ids);
+            OriginalCodecDispatchProof.begin(ids);
+        }
         catch (Exception error) { LEDGER.fail("APPLY_INPUT_BINDING"); LEDGER.end(); }
     }
     public static void before(ResourceManager resources, ResourceLocation row, JsonElement input) {
+        OriginalCodecDispatchProof.before(row, input);
         try {
             String id = row.toString();
             if (ArsDispatchLedger.ID.equals(id)) CanonicalDataFixture.verifyOriginalArsInput(resources, input);
@@ -56,10 +61,12 @@ public final class ArsDispatchProof {
         } catch (Exception error) { LEDGER.fail("ROW_INPUT_BINDING"); }
     }
     public static void after(ResourceLocation row) {
+        OriginalCodecDispatchProof.after(row);
         try { LEDGER.after(row.toString()); }
         catch (Exception error) { LEDGER.fail("AFTER_ROW_BINDING"); }
     }
     public static void registered(Object receiver, DynamicOps<?> ops, Object input, DataResult<?> result) {
+        OriginalCodecDispatchProof.registered(receiver, ops, input, result);
         if (!active()) return; // MUST precede all registry/Ars/FML/input resolution
         try {
             var registry = ForgeRegistries.GLOBAL_LOOT_MODIFIER_SERIALIZERS.get();
@@ -84,6 +91,7 @@ public final class ArsDispatchProof {
             body.commonRolls, body.uncommonRolls, body.rareRolls);
     }
     public static void bodyParse(Object receiver, DynamicOps<?> ops, Object input, DataResult<?> result) {
+        OriginalCodecDispatchProof.body(receiver, ops, input, result);
         if (!active()) return; // no DIRECT_CODEC or Ars initialization during unrelated bootstrap
         try {
             if (!sameRoot(receiver, IGlobalLootModifier.DIRECT_CODEC)) return;
@@ -101,5 +109,5 @@ public final class ArsDispatchProof {
         if (!(loaded instanceof DungeonLootEnhancerModifier ars) || !bodyFields(ars, expectedBody))
             throw new IllegalStateException("Actual loaded Ars body differs from original successful decode");
     }
-    public static void end() { LEDGER.end(); }
+    public static void end() { LEDGER.end(); OriginalCodecDispatchProof.end(); }
 }

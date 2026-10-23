@@ -12,7 +12,7 @@ public abstract class NativeArsRegistryDecodeMixin {
     @Inject(method = "decode(Lcom/mojang/serialization/DynamicOps;Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;",
         at = @At("RETURN"), require = 2, expect = 2, allow = 2, remap = false)
     void bcRegistered(DynamicOps<?> ops, Object input, CallbackInfoReturnable<DataResult<?>> callback) {
-        if (!ArsDispatchProof.active()) return;
+        if (!ArsDispatchProof.active() && !com.bettercontent.betterbumblezonecrops.nativefixture.OriginalCodecDispatchProof.active()) return;
         ArsDispatchProof.registered((Object)this, ops, input, callback.getReturnValue());
     }
 }
