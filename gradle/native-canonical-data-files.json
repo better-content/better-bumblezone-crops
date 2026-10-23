@@ -1,0 +1,22 @@
+{
+  "schema": "bc.crops_canonical_source_scope.v1",
+  "pack_id": "bc_crops_canonical_source",
+  "pack_format": 15,
+  "context_inputs": [
+    "mods/create.pw.toml",
+    "config/supplementaries-common.toml",
+    "kubejs/data/forge/loot_modifiers/global_loot_modifiers.json"
+  ],
+  "resources": [
+    "data/farmersrespite/loot_tables/blocks/kettle.json",
+    "data/farmersrespite/advancements/main/stunt_tea_bush.json",
+    "data/farmersrespite/recipes/filling/water_cup.json",
+    "data/farmersrespite/recipes/emptying/water_cup.json",
+    "data/farmersrespite/recipes/pouring/water_cup.json",
+    "data/farmersrespite/tags/items/drinks.json",
+    "data/the_bumblezone/bz_pollen_puff_entity_flowers/goety.json",
+    "data/farmersdelight/loot_modifiers/straw_from_grass.json",
+    "data/farmersdelight/loot_modifiers/straw_from_sandy_shrub.json",
+    "data/farmersdelight/loot_modifiers/straw_from_tall_grass.json"
+  ]
+}

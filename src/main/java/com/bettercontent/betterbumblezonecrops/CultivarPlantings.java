@@ -29,9 +29,18 @@ public final class CultivarPlantings extends SavedData {
   var cultivar=CultivarCatalog.byPlant(state.getBlock());
   if(cultivar==null||seed.getTag()==null||!seed.getTag().getString(ORIGIN).equals("the_bumblezone:the_bumblezone")
     ||!cultivar.seedItem().equals(ForgeRegistries.ITEMS.getKey(seed.getItem()).toString()))return;
-  var data=get(player.serverLevel());data.plantings.put(pos.asLong(),new Planting(player.getUUID(),cultivar.id(),UUID.randomUUID()));data.setDirty();
+  var data=get(player.serverLevel());var planting=new Planting(player.getUUID(),cultivar.id(),UUID.randomUUID());data.plantings.put(pos.asLong(),planting);data.setDirty();
+  var log=com.bettercontent.betterbumblezonecrops.diagnostics.RuntimeDiagnostics.LOG;
+  if(log.enabled("planting"))com.bettercontent.betterbumblezonecrops.diagnostics.FeatureObservation.planting(log,
+   ()->com.bettercontent.betterbumblezonecrops.diagnostics.RuntimeDiagnostics.context(player.level()),planting.operation(),planting.cultivar());
  }
  @SubscribeEvent public static void placed(BlockEvent.EntityPlaceEvent event){if(event.getEntity() instanceof ServerPlayer player){var main=player.getMainHandItem();var seed=main.getTag()!=null&&main.getTag().contains(ORIGIN)?main:player.getOffhandItem();planted(player,event.getPos(),event.getPlacedBlock(),seed);}}
  static Planting lookup(ServerLevel level,BlockPos pos,BlockState state){var cultivar=CultivarCatalog.byPlant(state.getBlock());var data=get(level);var planting=data.plantings.get(pos.asLong());if(planting!=null&&(cultivar==null||!cultivar.id().equals(planting.cultivar()))){data.plantings.remove(pos.asLong());data.setDirty();return null;}return planting;}
- static void harvested(ServerLevel level,BlockPos pos,Planting expected){var data=get(level);if(data.plantings.remove(pos.asLong(),expected)){data.setDirty();net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new com.bettercontent.betterbumblezonecrops.api.event.CultivarHarvestEvent(level,expected.owner(),pos,expected.cultivar(),expected.operation()));}}
+ static void harvested(ServerLevel level,BlockPos pos,Planting expected){
+  var data=get(level);boolean removed=data.plantings.remove(pos.asLong(),expected);
+  if(removed){data.setDirty();net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new com.bettercontent.betterbumblezonecrops.api.event.CultivarHarvestEvent(level,expected.owner(),pos,expected.cultivar(),expected.operation()));}
+  var log=com.bettercontent.betterbumblezonecrops.diagnostics.RuntimeDiagnostics.LOG;
+  if(log.enabled("harvest"))com.bettercontent.betterbumblezonecrops.diagnostics.FeatureObservation.harvest(log,
+   ()->com.bettercontent.betterbumblezonecrops.diagnostics.RuntimeDiagnostics.context(level),removed,expected.operation(),expected.cultivar());
+ }
 }

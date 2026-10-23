@@ -1,5 +1,7 @@
 # Better Bumblezone Crops
 
+See [bounded playtest observations](docs/playtest-observations.md) for planting/actual-drop diagnostics and privacy limits.
+
 ## Scope and authority
 
 This repository owns its mod-specific behavior and authoring inputs. Read [local instructions](AGENTS.md)
@@ -13,6 +15,18 @@ Requires Java 17, Minecraft 1.20.1, and Forge 47.4.13. Build from this repositor
 ```sh
 ./gradlew --no-daemon verifyFull stageRuntimeJar
 ```
+
+Native verification requires explicit `BC_CANONICAL_PACK_ROOT`, `BC_CANONICAL_ARCHIVES`,
+`BC_CANONICAL_ACTIVITY` and `BC_OWNER_SESSION` bindings. The activity must already register
+this repository's output scope before Gradle starts. The owning `prepareCanonicalDataSnapshot`
+task prepares a fresh immutable `.native-fixture-inputs/<native UUID>/` from approved Root and
+hash-pinned raw archives, before any own native preparation; no previous conversation snapshot
+is needed. Missing bindings fail clearly, never disable required data. The ten ordinary resources
+stay byte-identical; the reviewed fixed72 global index is separately labelled TRANSFORMED.
+Exact production Create and the data/load-proof fixture attach only to actual `gameTestServer`,
+not production/client/server or runtime/source archives. `-PcropsCanonicalDataManifest` remains
+an explicit immutable-input override with the same UUID/byte checks, not an ordinary prerequisite.
+Source checks, cached compilation and synthetic controls do not qualify actual fixture loading.
 
 The reobfuscated runtime artifact is `build/libs/better-bumblezone-crops-0.1.0.jar`. Local verification does not authorize deployment or pack tests. Generated build, cache, and runtime data stay untracked.
 
@@ -41,6 +55,15 @@ Ordinary flower items retain native placement and harvest rules. Flower seeds co
 Only `the_bumblezone:the_bumblezone` grants flower-harvest propagation: one seed with a 50% chance of a second **per recovered native flower unit**. Upper tall halves do not get another roll, and no recovered flower means no seed bonus. Provenance is not required: transplanted wild flowers and rapid place/break farming qualify there. Outside Bumblezone no flower seed bonus is possible. Native flower-item loot remains unchanged.
 
 Dimension-aware hooks cover native tall flowers/petals (including inherited overrides), grass bonemeal's flower branch, reviewed Nature's Spirit/Goety/Deep Void direct bonemeal overrides, lotus-stem flower regrowth (random and fertilized), Sniffer-created flower planting resources, Ars ritual-generated flower placements, and net flower creation by native shaped/shapeless recipes. The grass branch keeps unrelated grass growth; Ars keeps nonflower placements; one-for-one flower conversions remain possible. Forge bonemeal admission is owned by Better Compat Fixes. None of these hooks intercepts arbitrary world block placement or natural generation. No worlds, flowers, seed stacks or lineage records are migrated or removed.
+
+The SOURCE SDK declares the exact production BOTH pins for all18 namespaces required by the
+unconditional origin/seeds tags, plus existing Bumblezone and seven mandatory transitives
+(Blueprint, Citadel, Curios, GeckoLib, Moonlight, TerraBlender, Zeta):26 native providers total.
+`gradle/native-provider-closure.gradle` adds only the missing24; Farmer's Delight and the existing
+Bumblezone remap stay unchanged. No shipped mod dependency, tag ID, required flag or11-test coverage
+is reduced. Both latest/DEBUG logs reject ERROR/FATAL and actual loot-modifier failed WARNs.
+Pinned metadata/range inspection is not Gradle/native acceptance; Goety's raw unexpanded version
+placeholders are not patched or treated as meaningful upstream compatibility bounds.
 
 The read-only `python3 -B scripts/check-flower-contract.py` checks source resources and **every active hash-pinned Packwiz mod archive** against the sibling pack (override `--pack-root` and `--native-cache` explicitly if needed). Missing or mismatched inputs fail; it neither fetches nor uses historical registry dumps. It checks catalogue/tag/model/tint agreement, upstream flower-tag coverage with reasoned exclusions, explicit untagged flowers, flower-producing recipe coverage, and pinned optional native bonemeal symbols. Prepare pinned inputs separately when absent. `FlowerPropagationPolicyTest`, `FlowerGameTests`, and the existing tall-flower GameTest cover probability boundaries, actual off-origin flower loot, relocation, seed quantity, direct native bonemeal denial and installed tag coverage when their documented gate is authorized. These checks are not evidence that an unbuilt candidate works in the pack. Full modded aquatic/multiblock interactions, other installed generator adapters and same-artifact pack acceptance must still be exercised through an explicitly authorized runtime run.
 

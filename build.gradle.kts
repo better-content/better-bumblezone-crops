@@ -6,12 +6,14 @@ plugins { java; id("net.minecraftforge.gradle") version "6.0.54"; id("org.sponge
 group = "com.bettercontent"
 version = property("mod_version") as String
 base { archivesName.set(property("artifact_name") as String) }
-java { toolchain.languageVersion.set(JavaLanguageVersion.of(17)) }
+java { toolchain.languageVersion.set(JavaLanguageVersion.of(17)); withSourcesJar() }
 // Native worlds are retained, never recycled or placed beneath Gradle's cleanable build tree.
 val gameTestAttempts = project.file("run-gametest/attempts").toPath()
 require(!Files.isSymbolicLink(gameTestAttempts) && !Files.isSymbolicLink(gameTestAttempts.parent)) { "GameTest attempt ancestry must not be a symlink" }
 Files.createDirectories(gameTestAttempts)
-val gameTestAttempt = Files.createDirectory(gameTestAttempts.resolve(UUID.randomUUID().toString())).toFile()
+val gameTestAttemptId = providers.gradleProperty("nativeGameTestAttemptId").orNull?.let { UUID.fromString(it).toString() }
+    ?: UUID.randomUUID().toString()
+val gameTestAttempt = Files.createDirectory(gameTestAttempts.resolve(gameTestAttemptId)).toFile()
 logger.lifecycle("Native GameTest fresh attempt admitted: ${gameTestAttempt.absolutePath}; existing world=false")
 minecraft {
     mappings("official", property("minecraft_version") as String)
@@ -51,11 +53,13 @@ mixin { add(sourceSets.main.get(), "better_bumblezone_crops.refmap.json"); confi
 val syncGameTestStructures by tasks.registering(Copy::class) { from("src/main/resources/gameteststructures"); into(gameTestAttempt.resolve("gameteststructures")) }
 tasks.matching { it.name.startsWith("prepareRunGameTestServer") }.configureEach { dependsOn(syncGameTestStructures) }
 tasks.matching { it.name == "runGameTestServer" }.configureEach {
-    (this as JavaExec).workingDir(gameTestAttempt)
     doFirst {
-        val actual = (this as JavaExec).workingDir
+        val actual = file(minecraft.runs.getByName("gameTestServer").workingDirectory)
         require(actual.canonicalFile == gameTestAttempt.canonicalFile) { "Native GameTest working-directory drift: $actual" }
         require(!Files.exists(gameTestAttempt.resolve("world").toPath(), LinkOption.NOFOLLOW_LINKS)) { "Refusing existing GameTest world: $gameTestAttempt" }
         logger.lifecycle("Native GameTest launching fresh world: ${gameTestAttempt.resolve("world").absolutePath}; structures=${gameTestAttempt.resolve("gameteststructures").absolutePath}")
     }
 }
+apply(from = "gradle/native-gametest-fixture.gradle")
+apply(from = "gradle/native-provider-closure.gradle")
+apply(from = "gradle/native-canonical-data.gradle")

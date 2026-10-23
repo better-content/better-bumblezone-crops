@@ -2,4 +2,7 @@
 build/
 run/
 run-gametest/
+.native-fixture-inputs/
 logs/
+__pycache__/
+*.py[cod]

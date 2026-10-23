@@ -1,0 +1,105 @@
+// Required nonshipping owning fixture; prepare exact approved Root inputs reproducibly per invocation.
+def fixture = sourceSets.create('nativeFixture')
+fixture.compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+fixture.runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+configurations[fixture.implementationConfigurationName].extendsFrom(configurations.implementation)
+configurations[fixture.runtimeOnlyConfigurationName].extendsFrom(configurations.runtimeOnly)
+// Production Create with its own JarJar graph, not independently substituted dependency pins.
+dependencies.add(fixture.runtimeOnlyConfigurationName, fg.deobf('curse.maven:create-328085:7178761'))
+// Existing Ars6688854 native provider, fixture compile API only; no new pin/runtime/shipped dependency.
+dependencies.add(fixture.compileOnlyConfigurationName, fg.deobf('curse.maven:ars-nouveau-401955:6688854'))
+tasks.named(fixture.processResourcesTaskName).configure {
+    from('gradle/native-canonical-data-files.json') { rename { 'bc_crops_canonical_source_scope.json' } }
+    from('gradle/native-canonical-glm-policy.json') { rename { 'bc_crops_native_glm_policy.json' } }
+}
+def nativeRun = minecraft.runs.getByName('gameTestServer')
+def value = providers.gradleProperty('cropsCanonicalDataManifest').orNull
+if (value != null && value.trim().isEmpty()) throw new GradleException('Empty canonical manifest is invalid')
+def token = new File(nativeRun.workingDirectory).name
+def snapshot = value != null ? file(value).canonicalFile : file('.native-fixture-inputs/' + token + '/manifest.json').canonicalFile
+def descriptor = null
+nativeRun.mods.getByName('better_bumblezone_crops').source(fixture)
+nativeRun.args('--mixin', 'bc_crops_native_canonical.mixins.json')
+// Path/attempt are known now. SHA is bound only after this invocation has verified/prepared actual bytes.
+nativeRun.property('bc.crops.canonical.manifest', snapshot.absolutePath)
+nativeRun.property('bc.crops.canonical.manifest.attempt', token)
+nativeRun.property('bc.crops.canonical.manifest.proof', new File(nativeRun.workingDirectory, 'native-canonical-data-proof.json').absolutePath)
+def verifySnapshot = {
+    project.exec { commandLine('python3', '-B', 'scripts/prepare-native-canonical-data.py', '--verify', snapshot.absolutePath) }
+}
+tasks.register('verifyCanonicalDataRunConfigGuard') {
+    group = 'verification'
+    doLast {
+        minecraft.runs.each { run ->
+            boolean expected = run.name == 'gameTestServer'
+            if (run.args.count { it == 'bc_crops_native_canonical.mixins.json' } != (expected ? 1 : 0))
+                throw new GradleException('Required data proof Mixin escaped native RunConfig: ' + run.name)
+            if (run.allSources.count { it.name == 'nativeFixture' } != (expected ? 1 : 0))
+                throw new GradleException('Canonical fixture source escaped gameTestServer: ' + run.name)
+            if (run.properties.keySet().any { it.startsWith('bc.crops.canonical.') } != expected)
+                throw new GradleException('Required canonical fixture properties escaped native RunConfig: ' + run.name)
+        }
+        if (new File(nativeRun.workingDirectory, 'world').exists() || new File(nativeRun.workingDirectory, 'server.properties').exists())
+            throw new GradleException('Canonical guard must run before own preparation/engine')
+        if (snapshot.parentFile.name != token)
+            throw new GradleException('Canonical input UUID differs from actual native attempt')
+    }
+}
+tasks.matching { it.name == 'verifyFast' }.configureEach { dependsOn('verifyCanonicalDataRunConfigGuard') }
+tasks.register('prepareCanonicalDataSnapshot') {
+    group = 'verification'
+    dependsOn('verifyCanonicalDataRunConfigGuard')
+    // Intentionally no reusable task outputs: a fresh immutable snapshot is required per native UUID.
+    doLast {
+        if (value == null) {
+            def bindings = ['BC_CANONICAL_PACK_ROOT', 'BC_CANONICAL_ARCHIVES', 'BC_CANONICAL_ACTIVITY', 'BC_OWNER_SESSION']
+                .collectEntries { name -> [(name): providers.environmentVariable(name).orNull] }
+            if (bindings.values().any { it == null || it.trim().isEmpty() })
+                throw new GradleException('Required canonical native inputs missing: explicit BC_CANONICAL_PACK_ROOT, BC_CANONICAL_ARCHIVES, BC_CANONICAL_ACTIVITY and BC_OWNER_SESSION. Register owning output scope before Gradle. No sibling checkout inference or conversation snapshot dependency.')
+            project.exec { commandLine('python3', '-B', 'scripts/prepare-native-canonical-data.py',
+                '--root', bindings.BC_CANONICAL_PACK_ROOT, '--archives', bindings.BC_CANONICAL_ARCHIVES,
+                '--attempt', token, '--task', bindings.BC_CANONICAL_ACTIVITY, '--owner', bindings.BC_OWNER_SESSION) }
+        }
+        if (!snapshot.isFile()) throw new GradleException('Required canonical snapshot was not prepared')
+        verifySnapshot()
+        descriptor = new groovy.json.JsonSlurper().parse(snapshot)
+        if (descriptor.schema != 'bc.crops_canonical_snapshot.v2' || descriptor.attempt != token || descriptor.global_index_projected != true)
+            throw new GradleException('Canonical snapshot UUID/schema/fixed projection drift')
+        nativeRun.property('bc.crops.canonical.manifest.sha256', java.security.MessageDigest.getInstance('SHA-256').digest(snapshot.bytes).encodeHex().toString())
+    }
+}
+tasks.register('requireCanonicalDataBeforeNativePreparation') {
+    dependsOn('prepareCanonicalDataSnapshot')
+}
+// Every existing own preparation producer waits for snapshot/input/scope assertions.
+tasks.matching { it.name.startsWith('prepareRunGameTestServer') || it.name in ['syncGameTestStructures', 'syncGameTestStructuresGameTest', 'prepareGametestStructures', 'prepareFreshNativeProperties'] }.configureEach {
+    dependsOn('requireCanonicalDataBeforeNativePreparation')
+}
+tasks.register('verifyCanonicalDataArchives') {
+    group = 'verification'
+    dependsOn('stageRuntimeJar', 'sourcesJar')
+    doLast {
+        project.exec { commandLine('python3', '-B', 'scripts/check-native-canonical-archive.py',
+            "build/libs/${base.archivesName.get()}-${project.version}.jar", tasks.named('sourcesJar').get().archiveFile.get().asFile.absolutePath) }
+    }
+}
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    dependsOn(fixture.classesTaskName, 'verifyCanonicalDataArchives', 'requireCanonicalDataBeforeNativePreparation')
+    doFirst {
+        verifySnapshot()
+        if (new File(nativeRun.workingDirectory, 'native-canonical-data-proof.json').exists())
+            throw new GradleException('Refusing existing effective-origin proof')
+    }
+    doLast {
+        verifySnapshot()
+        def proof = new File(nativeRun.workingDirectory, 'native-canonical-data-proof.json')
+        if (!proof.isFile() || proof.length() == 0 || proof.length() > 2 * 1024 * 1024)
+            throw new GradleException('Missing/oversize actual effective ResourceManager proof')
+        def observed = new groovy.json.JsonSlurper().parse(proof)
+        if (observed.schema != 'bc.crops_effective_canonical_data.v1' || observed.attempt != token ||
+                observed.resources.size() != 10 || observed.globalIndexProjected != true ||
+                observed.glmProjection.actualLoadedDefinitionsAndCodecs.size() != 72 ||
+                observed.glmProjection.orderedIds != descriptor.projection.ordered_ids)
+            throw new GradleException('Incomplete actual canonical ResourceManager proof')
+    }
+}

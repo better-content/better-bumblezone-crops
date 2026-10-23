@@ -1,0 +1,29 @@
+// SOURCE SDK only: authored unconditional tag providers plus mandatory non-client transitives.
+// Current production BOTH pins; not new shipped mods.toml dependencies. Required GameTests remain11.
+// Existing Farmer's Delight and special Bumblezone development remap stay in build.gradle.kts.
+dependencies {
+    runtimeOnly fg.deobf('curse.maven:aether-255308:6134920') // aether; mods/aether.pw.toml
+    runtimeOnly fg.deobf('curse.maven:ars-elemental-561470:8399870') // ars_elemental; mods/ars-elemental.pw.toml
+    runtimeOnly fg.deobf('curse.maven:ars-nouveau-401955:6688854') // ars_nouveau; mods/ars-nouveau.pw.toml
+    runtimeOnly fg.deobf('curse.maven:blueprint-382216:6408581') // blueprint; mods/blueprint.pw.toml
+    runtimeOnly fg.deobf('curse.maven:born-in-chaos-686437:7917933') // born_in_chaos_v1; mods/born-in-chaos.pw.toml
+    runtimeOnly fg.deobf('curse.maven:citadel-331936:7476570') // citadel; mods/citadel.pw.toml
+    runtimeOnly fg.deobf('curse.maven:curios-309927:6418456') // curios; mods/curios.pw.toml
+    runtimeOnly fg.deobf('curse.maven:genetic-animals-313213:6134040') // eanimod; mods/genetic-animals.pw.toml
+    runtimeOnly fg.deobf('curse.maven:farmers-respite-551453:5543547') // farmersrespite; mods/farmers-respite.pw.toml
+    runtimeOnly fg.deobf('curse.maven:geckolib-388172:7553267') // geckolib; mods/geckolib.pw.toml
+    runtimeOnly fg.deobf('curse.maven:goety-586095:8087429') // goety; mods/goety.pw.toml
+    runtimeOnly fg.deobf('curse.maven:hexerei-548599:6314111') // hexerei; mods/hexerei.pw.toml
+    runtimeOnly fg.deobf('curse.maven:ice-and-fire-dragons-264231:5633453') // iceandfire; mods/ice-and-fire-dragons.pw.toml
+    runtimeOnly fg.deobf('curse.maven:selene-499980:8261419') // moonlight; mods/selene.pw.toml
+    runtimeOnly fg.deobf('curse.maven:natures-spirit-1044992:6962783') // natures_spirit; mods/natures-spirit.pw.toml
+    runtimeOnly fg.deobf('curse.maven:project-vibrant-journeys-300297:7917640') // projectvibrantjourneys; mods/project-vibrant-journeys.pw.toml
+    runtimeOnly fg.deobf('curse.maven:quark-243121:6427817') // quark; mods/quark.pw.toml
+    runtimeOnly fg.deobf('curse.maven:supplementaries-412082:7884611') // supplementaries; mods/supplementaries.pw.toml
+    runtimeOnly fg.deobf('curse.maven:terrablender-563928:6290448') // terrablender; mods/terrablender.pw.toml
+    runtimeOnly fg.deobf('curse.maven:the-deep-void-982999:8507128') // the_deep_void; mods/the-deep-void.pw.toml
+    runtimeOnly fg.deobf('curse.maven:the-twilight-forest-227639:5468648') // twilightforest; mods/the-twilight-forest.pw.toml
+    runtimeOnly fg.deobf('curse.maven:ubes-delight-903894:7734900') // ubesdelight; mods/ubes-delight.pw.toml
+    runtimeOnly fg.deobf('curse.maven:upgrade-aquatic-326895:6393133') // upgrade_aquatic; mods/upgrade-aquatic.pw.toml
+    runtimeOnly fg.deobf('curse.maven:zeta-968868:7335229') // zeta; mods/zeta.pw.toml
+}
