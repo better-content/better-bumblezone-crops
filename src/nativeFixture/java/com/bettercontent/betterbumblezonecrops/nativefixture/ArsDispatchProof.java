@@ -83,12 +83,12 @@ public final class ArsDispatchProof {
         return publicBodyFields(data, body.commonChance, body.uncommonChance, body.rareChance,
             body.commonRolls, body.uncommonRolls, body.rareRolls);
     }
-    public static void body(Object receiver, DynamicOps<?> ops, Object input, DataResult<?> result) {
+    public static void bodyParse(Object receiver, DynamicOps<?> ops, Object input, DataResult<?> result) {
         if (!active()) return; // no DIRECT_CODEC or Ars initialization during unrelated bootstrap
         try {
             if (!sameRoot(receiver, IGlobalLootModifier.DIRECT_CODEC)) return;
-            Object payload = result == null ? null : result.result().orElse(null);
-            Object value = payload instanceof Pair<?, ?> pair ? pair.getFirst() : null;
+            // Codec.parse returns the decoded body, unlike Codec.decode's Pair<body, remainder>.
+            Object value = result == null ? null : result.result().orElse(null);
             boolean exactBody = value != null && value.getClass().getName().equals(ArsDispatchLedger.BODY)
                 && value instanceof DungeonLootEnhancerModifier ars && bodyFields(ars, input);
             LEDGER.body(true, ops == JsonOps.INSTANCE,

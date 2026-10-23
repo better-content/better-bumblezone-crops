@@ -27,6 +27,12 @@ Exact production Create and the data/load-proof fixture attach only to actual `g
 not production/client/server or runtime/source archives. `-PcropsCanonicalDataManifest` remains
 an explicit immutable-input override with the same UUID/byte checks, not an ordinary prerequisite.
 Source checks, cached compilation and synthetic controls do not qualify actual fixture loading.
+The required Ars proof observes Forge's original root `Codec.parse` call at the native
+`LootModifierManager.apply` call site: it invokes the same public receiver once and returns the
+identical result, preserving original exceptions. This avoids relying on transformation of DFU
+library classes already loaded before mod Mixins. The registered Ars decoder return, exact input,
+body fields, row order and complete loaded-map checks remain required; forwarding/negative unit
+controls do not replace the native proof.
 
 The reobfuscated runtime artifact is `build/libs/better-bumblezone-crops-0.1.0.jar`. Local verification does not authorize deployment or pack tests. Generated build, cache, and runtime data stay untracked.
 

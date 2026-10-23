@@ -4,6 +4,10 @@ fixture.compileClasspath += sourceSets.main.output + sourceSets.main.compileClas
 fixture.runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
 configurations[fixture.implementationConfigurationName].extendsFrom(configurations.implementation)
 configurations[fixture.runtimeOnlyConfigurationName].extendsFrom(configurations.runtimeOnly)
+// Unit controls exercise the nonshipping observer/ledger without starting Forge.
+sourceSets.test.compileClasspath += fixture.output
+sourceSets.test.runtimeClasspath += fixture.output
+tasks.named('compileTestJava').configure { dependsOn(fixture.classesTaskName) }
 // Production Create with its own JarJar graph, not independently substituted dependency pins.
 dependencies.add(fixture.runtimeOnlyConfigurationName, fg.deobf('curse.maven:create-328085:7178761'))
 // Existing Ars6688854 native provider, fixture compile API only; no new pin/runtime/shipped dependency.
