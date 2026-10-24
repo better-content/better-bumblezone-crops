@@ -33,6 +33,36 @@ configuration roles, dynamic canonical raw/source-metadata hashes, exact source 
 data-resource hashes. Compat's reviewed empty `replace:false, entries:[]` GLM index is explicitly
 classified, not hidden or counted as an original declaration; new/changed peer indexes fail closed.
 The original fixed53 archive model, raw77 rows, selected72 and 11 native tests remain unchanged.
+
+The fixed policy schema is `bc.crops_fixed_glm_projection.source.v2`. Its explicit
+`root_data_owner_inputs` map uses `bc.crops.root_data_owner.v1` for exactly three Root custom
+production owners: Chemlib Hazards0.2.0, Wild Fruit Trees0.1.1 and Bumblezone Crops0.1.0.
+For those three only, identity is the sorted name/SHA-256 map of **every** non-directory `data/`
+payload, plus exact `META-INF/mods.toml` and `pack.mcmeta` hashes with explicit `null` for absence.
+Duplicate searched names reject. Added/removed/renamed/changed data or logical-owner metadata
+requires explicit review; no GLM-row/codec/resource-existence filter may hide unrelated data.
+Directory records, unsearched classes, source-provenance metadata and ZIP bookkeeping do not
+change this **data-only** identity. Code/native correctness remains separately source-qualified.
+The three rows' original `archive_sha256` values are historical reviewed archive witnesses,
+not live whole-ZIP equality checks. **Every other owner, all selected53 SDK parents, nested
+archives and original third-party pins retain their exact whole-archive checks.** Unknown roles
+cannot acquire the data-only treatment; missing or extra frozen root-map membership rejects.
+
+The v2 identity freeze explicitly reviewed real pre-existing source changes, not merely stamping:
+Wild Fruit Trees commit `bc992c7b6061a6ccd4a3988c34119302315a7938` adds four optional dependencies
+(`dynamictreesplus`, `dtnatures_spirit`, `natures_spirit`, `dtquark`) in `META-INF/mods.toml`.
+Crops commit `d747870a0b2a0a20b5234f2244dbd350171ff244` adds the decorative-flower block tag
+and expands the origin-block and seed-item tags for the already authored flora. Each of those
+four changed/added resources matches its owning tracked source and processed resource bytes.
+Chemlib's complete data/metadata identity is unchanged. All three owners' GLM bodies/indexes and
+`pack.mcmeta` remain identical to the historical archive witnesses; no226/72 decision, order,
+definition, codec, five exclusion or native assertion was changed by this identity repair.
+The historical WFT metadata and Crops tag identities deliberately reject against the reviewed
+current freeze; historical hashes are not fallback alternatives.
+`python3 -B scripts/test_native_canonical_data.py` retains the original pure controls and adds
+complete-data/metadata mutation, exact-role membership, explicit-absence, bookkeeping-only and
+historical-rejection controls. Source controls do not prove native loaded data or gameplay.
+
 The trusted Root caller owns qualification through its common build gates; source metadata alone is
 not owning-gate proof. Both Source-control and canonical-release staging are supported without requiring
 a Source-control-only receipt or duplicating Root session/checkpoint authority.

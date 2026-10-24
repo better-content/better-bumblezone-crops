@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import re
 import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
@@ -12,6 +13,13 @@ INDEX = 'data/forge/loot_modifiers/global_loot_modifiers.json'
 IN = 'IN_DOMAIN_DEFINITION_PRESENT'
 OUT = 'OUTSIDE_DOMAIN_RESOURCE_EXISTS_ONLY_IN_UNSELECTED_PRODUCTION_PROVIDER'
 sha = lambda b: hashlib.sha256(b).hexdigest()
+ROOT_DATA_OWNER_VERSION = 'bc.crops.root_data_owner.v1'
+ROOT_DATA_OWNERS = frozenset({
+    'root://mods/better-chemlib-hazards-0.2.0.jar',
+    'root://mods/better-wild-fruit-trees-0.1.1.jar',
+    'root://mods/better-bumblezone-crops-0.1.0.jar',
+})
+OWNER_METADATA = ('META-INF/mods.toml', 'pack.mcmeta')
 
 
 def require(value, message):
@@ -23,7 +31,7 @@ class Inputs:
     def __init__(self, root, archives):
         self.root, self.archives = Path(root), Path(archives)
         self.stack = ExitStack()
-        self.zips, self.hashes = {}, {}
+        self.zips, self.hashes, self.data_owners = {}, {}, {}
 
     def close(self):
         self.stack.close()
@@ -74,8 +82,65 @@ class Inputs:
     def definition(self, owner, resource):
         return self.resource(owner, resource) if owner.split('::')[-1].endswith('.jar') else self.path(owner).read_bytes()
 
+    def data_owner(self, owner):
+        require(owner in ROOT_DATA_OWNERS, 'Data-only identity is restricted to the exact three Root custom owners')
+        if owner not in self.data_owners:
+            self.data_owners[owner] = root_data_owner_identity(self.archive(owner))
+        return self.data_owners[owner]
+
+
+def root_data_owner_identity(archive):
+    """ALL data payloads + exact owner metadata, including explicit metadata absence.
+
+    Directory records, classes, ZIP bookkeeping and source provenance are not data.
+    No resource-existence/codec/row filter is used to construct this identity.
+    """
+    searched = [i for i in archive.infolist()
+                if i.filename.startswith('data/') or i.filename in OWNER_METADATA]
+    names = [i.filename for i in searched]
+    require(len(names) == len(set(names)), 'Duplicate searched data/owner metadata name')
+    require(all(i.orig_filename == i.filename for i in searched), 'Truncated searched archive name')
+    data = {i.filename: sha(archive.read(i)) for i in sorted(searched, key=lambda i: i.filename)
+            if i.filename.startswith('data/') and not i.is_dir()}
+    metadata = {name: sha(archive.read(name)) if name in names else None for name in OWNER_METADATA}
+    require(not any(i.is_dir() for i in searched if i.filename in OWNER_METADATA), 'Owner metadata must be a file')
+    return dict(version=ROOT_DATA_OWNER_VERSION, data=data, metadata=metadata)
+
+
+def validate_root_data_owners(policy):
+    require(policy.get('schema') == 'bc.crops_fixed_glm_projection.source.v2', 'Fixed data policy version changed')
+    owners = policy.get('root_data_owner_inputs')
+    require(isinstance(owners, dict) and set(owners) == ROOT_DATA_OWNERS,
+            'Exactly three frozen Root custom data-owner identities are mandatory')
+    referenced = {o['origin'] for row in policy['root_rows'] for o in row['production_resource_owners']}
+    require(ROOT_DATA_OWNERS <= referenced, 'Frozen Root data owner is not referenced by the reviewed rows')
+    for identity in owners.values():
+        require(isinstance(identity, dict) and set(identity) == {'version', 'data', 'metadata'} and
+                identity['version'] == ROOT_DATA_OWNER_VERSION, 'Invalid Root data-owner identity version/shape')
+        data, metadata = identity['data'], identity['metadata']
+        require(isinstance(data, dict) and data and list(data) == sorted(data), 'Complete sorted data identity required')
+        require(isinstance(metadata, dict) and set(metadata) == set(OWNER_METADATA), 'Explicit owner metadata presence/absence required')
+        require(all(isinstance(name, str) and name.startswith('data/') and not name.endswith('/') and
+                    '\\' not in name and all(p not in ('', '.', '..') for p in name.split('/'))
+                    for name in data), 'Unsafe/non-data identity name')
+        require(all(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) for value in data.values()),
+                'Invalid data identity hash')
+        require(all(value is None or isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value)
+                    for value in metadata.values()), 'Invalid owner metadata hash/absence')
+
+
+def verify_production_owner(inputs, owner, policy):
+    origin = owner['origin']
+    if origin in ROOT_DATA_OWNERS:
+        require(inputs.data_owner(origin) == policy['root_data_owner_inputs'][origin],
+                'Actual complete Root data-owner resources/metadata changed; explicit review required')
+    else:
+        # Every third-party/SDK/unknown owner retains the original whole-archive gate.
+        require(inputs.owner_sha(origin) == owner['archive_sha256'], 'Actual data owner archive changed')
+
 
 def validate_model(policy):
+    validate_root_data_owners(policy)
     rows = policy['root_rows']
     ids = [r['id'] for r in rows]
     require(len(rows) == len(set(ids)) == 226 and [r['root_order'] for r in rows] == list(range(226)), 'All226 ordered unique row decisions are mandatory')
@@ -131,7 +196,7 @@ def verify(root, archives, policy=None):
         for row in policy['root_rows']:
             resource = row['resource']
             for owner in row['production_resource_owners']:
-                require(inputs.owner_sha(owner['origin']) == owner['archive_sha256'], 'Actual data owner archive changed')
+                verify_production_owner(inputs, owner, policy)
                 require((owner['origin'] in sdk) == owner['selected_sdk_candidate'], 'Fixed provider/SDK membership mismatch')
                 definition = inputs.resource(owner['origin'], resource)
                 require(definition is not None and sha(definition) == owner['sha256'], 'Actual resource-owner definition absent/stale')
@@ -165,6 +230,7 @@ def verify(root, archives, policy=None):
         require([r['id'] for r in resolved] == selected_ids, 'MANDATORY row lost during verification')
         index = (json.dumps(dict(replace=True, entries=selected_ids), indent=2)+'\n').encode()
         return dict(recipe=policy['recipe'], owner_projection_version='bc.crops.logical_data_owner.v1',
+                    root_data_owner_identity_version=ROOT_DATA_OWNER_VERSION,
                     frozen_manifest_sha256=sha(POLICY.read_bytes()), canonical_parent_sha256=sha(parent),
                     transformed=True, ordered_ids=selected_ids, index_sha256=sha(index), resources=resolved), index, parent
     finally:

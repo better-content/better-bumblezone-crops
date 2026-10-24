@@ -2,6 +2,8 @@
 import importlib.util
 import copy
 import json
+import io
+import warnings
 from pathlib import Path
 import unittest
 import uuid
@@ -143,6 +145,124 @@ class CanonicalControls(unittest.TestCase):
         existing = (ROOT/'gradle/native-gametest-fixture.gradle').read_text()
         self.assertIn('All 11 required tests passed', existing)
         self.assertIn('11 GAME TESTS COMPLETE', existing)
+
+
+class RootDataOwnerControls(unittest.TestCase):
+    """Pure complete-data identity controls; no historical outputs as test fixtures."""
+    def identity(self, pairs, compression=zipfile.ZIP_STORED):
+        output = io.BytesIO()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', UserWarning)
+            with zipfile.ZipFile(output, 'w', compression=compression) as z:
+                for name, body in pairs:
+                    z.writestr(name, body)
+        with zipfile.ZipFile(io.BytesIO(output.getvalue())) as z:
+            return prepare.fixed_glm.root_data_owner_identity(z), output.getvalue()
+
+    def pairs(self):
+        return [('data/example/unreferenced.txt', b'not a GLM definition'),
+                ('data/forge/loot_modifiers/global_loot_modifiers.json', b'{"entries":[]}'),
+                ('META-INF/mods.toml', b'owner metadata'), ('pack.mcmeta', b'pack metadata'),
+                ('example/Unsearched.class', b'old code'), ('META-INF/bc-source.json', b'old provenance')]
+
+    def assertRejectedIdentity(self, pairs):
+        expected, _ = self.identity(self.pairs())
+        try:
+            actual, _ = self.identity(pairs)
+        except ValueError:
+            return
+        self.assertNotEqual(expected, actual)
+
+    def test_every_data_change_add_remove_rename_and_duplicate_rejected(self):
+        for operation in ('change', 'add', 'remove', 'rename', 'duplicate'):
+            pairs = self.pairs()
+            if operation == 'change': pairs[0] = (pairs[0][0], b'changed non-GLM bytes')
+            if operation == 'add': pairs.append(('data/example/new.json', b'{}'))
+            if operation == 'remove': pairs.pop(0)
+            if operation == 'rename': pairs[0] = ('data/example/renamed.txt', pairs[0][1])
+            if operation == 'duplicate': pairs.append(pairs[0])
+            with self.subTest(operation=operation):
+                self.assertRejectedIdentity(pairs)
+
+    def test_owner_metadata_change_add_remove_rename_duplicate_rejected(self):
+        for name in prepare.fixed_glm.OWNER_METADATA:
+            for operation in ('change', 'remove', 'rename', 'duplicate'):
+                pairs = self.pairs()
+                index = next(i for i, p in enumerate(pairs) if p[0] == name)
+                if operation == 'change': pairs[index] = (name, b'changed metadata')
+                if operation == 'remove': pairs.pop(index)
+                if operation == 'rename': pairs[index] = (name + '.renamed', pairs[index][1])
+                if operation == 'duplicate': pairs.append(pairs[index])
+                with self.subTest(name=name, operation=operation):
+                    self.assertRejectedIdentity(pairs)
+            absent = [p for p in self.pairs() if p[0] != name]
+            identity, _ = self.identity(absent)
+            self.assertIsNone(identity['metadata'][name])
+            self.assertNotEqual(identity, self.identity(self.pairs())[0])  # addition to explicit absence
+
+    def test_only_unsearched_classes_provenance_and_zip_bookkeeping_are_ignored(self):
+        original, original_bytes = self.identity(self.pairs())
+        changed = [(n, b'new code/provenance' if n.endswith(('.class', 'bc-source.json')) else b)
+                   for n, b in reversed(self.pairs())]
+        changed.append(('data/empty-directory/', b''))  # no payload; ZIP bookkeeping only
+        actual, actual_bytes = self.identity(changed, zipfile.ZIP_DEFLATED)
+        self.assertEqual(original, actual)
+        self.assertNotEqual(prepare.sha(original_bytes), prepare.sha(actual_bytes))
+
+    def test_exact_three_owners_and_model_shape_are_mandatory(self):
+        model = json.loads(prepare.fixed_glm.POLICY.read_bytes())
+        prepare.fixed_glm.validate_model(model)
+        for kind in ('missing', 'extra', 'rename', 'metadata_absence', 'version', 'unreferenced'):
+            mutant = copy.deepcopy(model)
+            owners = mutant['root_data_owner_inputs']
+            key = next(iter(owners))
+            if kind == 'missing': owners.pop(key)
+            if kind == 'extra': owners['archive://third-party.jar'] = owners[key]
+            if kind == 'rename': owners[key + '.renamed'] = owners.pop(key)
+            if kind == 'metadata_absence': owners[key]['metadata'].pop('pack.mcmeta')
+            if kind == 'version': owners[key]['version'] = 'unknown'
+            if kind == 'unreferenced':
+                for row in mutant['root_rows']:
+                    row['production_resource_owners'] = [o for o in row['production_resource_owners'] if o['origin'] != key]
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                prepare.fixed_glm.validate_model(mutant)
+
+    def test_all_three_current_identity_branches_and_real_historical_drift_reject(self):
+        model = json.loads(prepare.fixed_glm.POLICY.read_bytes())
+        class SyntheticInputs:
+            def data_owner(self, origin):
+                return identities[origin]
+            def owner_sha(self, origin):
+                raise AssertionError('Root custom identity must not compare historical whole-ZIP witness')
+        identities = copy.deepcopy(model['root_data_owner_inputs'])
+        for origin in prepare.fixed_glm.ROOT_DATA_OWNERS:
+            prepare.fixed_glm.verify_production_owner(SyntheticInputs(), {'origin': origin}, model)
+        wft = 'root://mods/better-wild-fruit-trees-0.1.1.jar'
+        crops = 'root://mods/better-bumblezone-crops-0.1.0.jar'
+        # Explicit historical reviewed hashes, not admitted alternatives. They must FAIL.
+        identities[wft]['metadata']['META-INF/mods.toml'] = '467882f4190fda767813e6d6cac16c60ede3438bd20f3e496eb08f3cccd1797e'
+        with self.assertRaises(ValueError):
+            prepare.fixed_glm.verify_production_owner(SyntheticInputs(), {'origin': wft}, model)
+        identities[crops]['data'].pop('data/better_bumblezone_crops/tags/blocks/decorative_flowers.json')
+        identities[crops]['data']['data/better_bumblezone_crops/tags/blocks/origin/bumblezone.json'] = '9cd98cd17cbec14714af5d99ef0edeff25d3ff1625ecf8593bbc268754532183'
+        identities[crops]['data']['data/better_bumblezone_crops/tags/items/seeds.json'] = 'd35926e8d8b52d3348aa648c3e0a40d68f7a5a50d45533b7379cc0ee8b1b1780'
+        with self.assertRaises(ValueError):
+            prepare.fixed_glm.verify_production_owner(SyntheticInputs(), {'origin': crops}, model)
+        chemlib = 'root://mods/better-chemlib-hazards-0.2.0.jar'
+        prepare.fixed_glm.verify_production_owner(SyntheticInputs(), {'origin': chemlib}, model)
+
+    def test_unknown_root_and_all_third_party_roles_keep_whole_archive_gates(self):
+        class SyntheticInputs:
+            def owner_sha(self, origin):
+                return 'actual-whole-archive'
+            def data_owner(self, origin):
+                raise AssertionError('Unknown/SDK owner cannot use data-only identity')
+        for origin in ('root://mods/unknown.jar', 'archive://sdk.jar', 'archive://sdk.jar::nested.jar'):
+            prepare.fixed_glm.verify_production_owner(SyntheticInputs(),
+                dict(origin=origin, archive_sha256='actual-whole-archive'), {})
+            with self.subTest(origin=origin), self.assertRaises(ValueError):
+                prepare.fixed_glm.verify_production_owner(SyntheticInputs(),
+                    dict(origin=origin, archive_sha256='historical-whole-archive'), {})
 
 
 if __name__ == '__main__':

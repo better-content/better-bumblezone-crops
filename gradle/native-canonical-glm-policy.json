@@ -1,5 +1,52 @@
 {
-  "schema": "bc.crops_fixed_glm_projection.source.v1",
+  "schema": "bc.crops_fixed_glm_projection.source.v2",
+  "root_data_owner_inputs": {
+    "root://mods/better-chemlib-hazards-0.2.0.jar": {
+      "version": "bc.crops.root_data_owner.v1",
+      "data": {
+        "data/better_chemlib_hazards/loot_modifiers/placed_nuclear_state.json": "d9eefd5ff822545c3260bf054d7896468e12d76a2cd7830ea57f2ef8e0f7638a",
+        "data/better_chemlib_hazards/nuclear_decay/default.json": "fe02ca4d7b30046bd6c3d5b1191b68e0ab097c44a469c35aaa51a278ccf4410d",
+        "data/better_chemlib_hazards/nuclear_forms/better_ore_geology.json": "0371125762bfde912a513ae9293774c6433d564337785a555dc0c1d14127b98b",
+        "data/better_chemlib_hazards/nuclear_forms/default.json": "46a0a96704dac6146ffb40f940d26f9e0a6cbad04d4e3d149c8b539a91c4ee4f",
+        "data/better_chemlib_hazards/nuclear_phenomena/default.json": "cfb2f2bdc25bb271362978f9bc01a331a74e78eddd14e8d937d8bb310a4764d4",
+        "data/forge/loot_modifiers/global_loot_modifiers.json": "7813b9a7a180fcb9b0c0683c232d991c9e412f859d40c5c51b6d947998379789"
+      },
+      "metadata": {
+        "META-INF/mods.toml": "5c6432ba6fb41766a1b059f781267718fd528ba9af69e9df3528c5e1503ef489",
+        "pack.mcmeta": "9c2e163c1046bc053a7032d091ec0334ca07b3cee5ab94912cd2a3bf5a54d584"
+      }
+    },
+    "root://mods/better-wild-fruit-trees-0.1.1.jar": {
+      "version": "bc.crops.root_data_owner.v1",
+      "data": {
+        "data/ars_nouveau/worldgen/configured_feature/patch_berry.json": "f6567001edc8891bf270d63949e6e65a14b4e9ffdc0ee0118a980ea499a6c287",
+        "data/better_wild_fruit_trees/loot_modifiers/no_propagules.json": "70515e9cabebc447b29ee2f3213c21dbfb30f4dd3bf027c75ad70ab650bbe811",
+        "data/forge/loot_modifiers/global_loot_modifiers.json": "e612be442db0f5c4db57f19a56cb74f3be87ea1050ce8b6867445d104ddc626a",
+        "data/fruitsdelight/worldgen/configured_feature/blueberry_bush.json": "f343b00b55f0ecec855b8c93cddd4c0ca3ca50bb15b0748018e5c8fee69e01d4",
+        "data/fruitsdelight/worldgen/configured_feature/cranberry_bush.json": "b2d0ad811a41394ae6c7bdeca07bf20fb3ab8325cc40d074c729a72449ddf820",
+        "data/minecraft/worldgen/configured_feature/patch_berry_bush.json": "95cdfe08937f04d7e9aaa4adc84937ee2d87ed9a71ea96b40391b7b24a1abacb"
+      },
+      "metadata": {
+        "META-INF/mods.toml": "bf418254d02a1ba35635f6ad4d0016f63461595cf7fe497a89d6c979788e6c62",
+        "pack.mcmeta": "a8b53224b6389bfd026754400895bccec008f9b7ba9f567a3ff6053371f44688"
+      }
+    },
+    "root://mods/better-bumblezone-crops-0.1.0.jar": {
+      "version": "bc.crops.root_data_owner.v1",
+      "data": {
+        "data/better_bumblezone_crops/loot_modifiers/propagation.json": "e6e87eb38a1a0707d2cf756090b0685b1130c7d48f8a007b2919ae5879d19cf3",
+        "data/better_bumblezone_crops/tags/blocks/decorative_flowers.json": "0d72c66eeafb2a3cb28a7b8804a6ffa419de9a22140a9479188313f40d6044f1",
+        "data/better_bumblezone_crops/tags/blocks/origin/bumblezone.json": "568dadb8ccc5f518aa811492d8e626b11d98a0c6892f7cfe68f55275f02baa39",
+        "data/better_bumblezone_crops/tags/items/origin/bumblezone.json": "807e763abe21f411f7e98ca62310948514b89986448998c0d9e0fc9dabea2ce0",
+        "data/better_bumblezone_crops/tags/items/seeds.json": "4becc236a3af04ea46a07c4ca2aa112468f62cfaf068def055c28da068b30d82",
+        "data/forge/loot_modifiers/global_loot_modifiers.json": "add1ecd0fd2b1462b8a9e0d4e85b48a4d6cca3c3fd6323ad2365bd0fff1f07b0"
+      },
+      "metadata": {
+        "META-INF/mods.toml": "7167944225a0cd9040ea35c0ec47eae84497080549a3d88dfc0bf666c31c6692",
+        "pack.mcmeta": "025468636896c70a767b30a7cfea631eb77bddb0cd28bd27a0d7e29df26af039"
+      }
+    }
+  },
   "native_or_gradle_invoked": false,
   "transformation_coded": false,
   "policy_index_written": false,
