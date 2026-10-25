@@ -142,6 +142,7 @@ public final class CanonicalCompatProviderProof {
         result.addProperty("authoredFlowerTemplateImported", true);
         result.addProperty("nativeBinaryShapeNegativeControlObserved", true);
         result.addProperty("authoredFlowerTemplateSha256", sha(templateText.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        result.add("bumblezoneConfigWrite", BumblezoneConfigWriteProof.observe());
         result.add("providers", observed);
         return result;
     }

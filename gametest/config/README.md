@@ -7,11 +7,16 @@ settings. Its SHA-256 is
 The reviewed bytes came from retained native attempt
 `b041c176-2d94-4132-a78d-fcc207f45974` after generation completed.
 
-That attempt exposed NightConfig's watcher reading the initial partial
-`["Variant Bee Options"]` header. Preparing the complete file before Forge starts
-prevents that first-write race; no watcher, exception, severity or failed-operation
-check is disabled. The helper rejects changed seed bytes and any post-launch
-rewrite, while preserving already-authored ordinary files byte for byte.
+That attempt exposed NightConfig's watcher reading a partial
+`["Variant Bee Options"]` header. Preparing the complete file avoids incomplete
+defaults, but release `20261025T135014Z-3098819` proved that preseeding alone does
+not prevent Forge's later unconditional REPLACE save racing Bumblezone's separate
+autoreloader. The production canonical compat provider now publishes those pinned
+Bumblezone writes atomically while retaining both original watchers. The native
+provider proof checks all five actual COMMON writers and a real Forge reload
+event after a byte-preserving save. No watcher, exception, severity or
+failed-operation check is disabled. The helper still rejects changed seed bytes
+and any post-launch rewrite, while preserving authored ordinary files byte for byte.
 
 These eleven tests exercise authored crop/flower fixtures and actual loaded
 registries/resources, not incidental overworld terrain generation. Fresh native
