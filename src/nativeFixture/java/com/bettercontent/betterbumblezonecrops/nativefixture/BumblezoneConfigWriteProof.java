@@ -28,7 +28,7 @@ final class BumblezoneConfigWriteProof {
         if (!configs.stream().map(ModConfig::getFileName).collect(java.util.stream.Collectors.toSet()).equals(expected))
             throw new IllegalStateException("Native Bumblezone COMMON config population differs");
         for (var config : configs)
-            if (!(config.getConfigData() instanceof CommentedFileConfig file) || !BumblezoneAtomicConfig.isInstalled(file))
+            if (!(config.getConfigData() instanceof CommentedFileConfig file) || !BumblezoneAtomicConfig.isInstalled(config))
                 throw new IllegalStateException("Actual optional-provider Forge writer was not repaired: " + config.getFileName());
         var general = configs.stream().filter(config -> config.getFileName().equals("the_bumblezone/general.toml")).findFirst().orElseThrow();
         byte[] before = Files.readAllBytes(general.getFullPath());
