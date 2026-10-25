@@ -88,7 +88,13 @@ class NativeFixtureTest(unittest.TestCase):
         # GameTestHelper.absolutePos is relative to the structure block itself.
         self.assertIn('pos:[3,0,2]', template)
         self.assertIn('helper.absolutePos(new BlockPos(3, 1, 2))', source)
-        self.assertIn('Name:"minecraft:glowstone"', template)
+        self.assertIn('palette:["minecraft:glowstone"]', template)
+        self.assertIn('data:[{pos:[3,0,2],state:"minecraft:glowstone"}]', template)
+        self.assertNotIn('blocks:', template)
+        self.assertNotIn('Name:', template)
+        proof = (root / 'src/nativeFixture/java/com/bettercontent/betterbumblezonecrops/nativefixture/CanonicalCompatProviderProof.java').read_text()
+        self.assertIn('NbtUtils.snbtToStructure(templateText)', proof)
+        self.assertIn('binaryShape.getList("palette", 10).isEmpty()', proof)
         body = source.split('void flowerRelocationConservesQuantity', 1)[1].split('@GameTest', 1)[0]
         self.assertIn('cycle < 20', body)
         self.assertIn('LightLayer.BLOCK, pos) == 14', body)

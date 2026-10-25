@@ -41,6 +41,21 @@ public final class CanonicalCompatProviderProof {
         return path;
     }
     public static JsonObject observe(MinecraftServer server) throws Exception {
+        // StructureUtils imports packed SNBT with NbtUtils, not TagParser alone.
+        // Binary-NBT-shaped palette compounds are silently discarded by that importer.
+        String templateText = Files.readString(ordinary(Path.of("gameteststructures/flower_lit.snbt")));
+        var authored = net.minecraft.nbt.NbtUtils.snbtToStructure(templateText);
+        var palette = authored.getList("palette", 10);
+        var blocks = authored.getList("blocks", 10);
+        require(palette.size() == 1 && "minecraft:glowstone".equals(palette.getCompound(0).getString("Name")) &&
+            blocks.size() == 1 && blocks.getCompound(0).getInt("state") == 0,
+            "Actual native SNBT importer lost authored flower lamp");
+        var lamp = blocks.getCompound(0).getList("pos", 3);
+        require(lamp.size() == 3 && lamp.getInt(0) == 3 && lamp.getInt(1) == 0 && lamp.getInt(2) == 2,
+            "Authored template lamp coordinates differ from native structure offset");
+        var binaryShape = net.minecraft.nbt.NbtUtils.snbtToStructure(
+            "{size:[5,5,5],entities:[],blocks:[{pos:[3,0,2],state:0}],palette:[{Name:\"minecraft:glowstone\"}]}");
+        require(binaryShape.getList("palette", 10).isEmpty(), "Native SNBT binary-shape negative control drifted");
         require(server.overworld().getChunkSource().getGenerator() instanceof net.minecraft.world.level.levelgen.FlatLevelSource,
                 "Authored crop fixture requires actual flat isolation, not unrelated normal terrain generation");
         Path receipt = ordinary(Path.of(System.getProperty(PREFIX + "binding")));
@@ -124,6 +139,9 @@ public final class CanonicalCompatProviderProof {
         result.addProperty("originalGlobalHasBlockEntityPreserved", true);
         result.addProperty("actualLookupRetainsSyntheticMarker", true);
         result.addProperty("controlScope", "fresh_unregistered_level_chunk");
+        result.addProperty("authoredFlowerTemplateImported", true);
+        result.addProperty("nativeBinaryShapeNegativeControlObserved", true);
+        result.addProperty("authoredFlowerTemplateSha256", sha(templateText.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         result.add("providers", observed);
         return result;
     }

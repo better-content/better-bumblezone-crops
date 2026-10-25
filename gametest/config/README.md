@@ -24,7 +24,11 @@ The flower test now gets its real glowstone neighbor from `flower_lit.snbt`
 before execution rather than placing it after the conservation loop. SNBT y=0
 loads at y=1 relative to the structure block (`StructureBlockEntity.structurePos`
 is `(0,1,0)`); the test checks the actual lamp both before and after conservation.
-Its runtime
+The file uses Minecraft's **packed SNBT** (`palette` strings and `data` states),
+not binary-NBT-shaped `palette` compounds/`blocks`; `NbtUtils.snbtToStructure`
+silently drops a compound palette. The nonshipping native proof exercises the
+actual importer, checks the lamp/position and retains that malformed-shape
+negative control. Its runtime
 deadline remains **20 ticks**, all twenty relocation checks and both hands remain,
 and readiness additionally requires actual block light **14**. The positive
 farmland and negative dirt cases still require identical observed native light.
