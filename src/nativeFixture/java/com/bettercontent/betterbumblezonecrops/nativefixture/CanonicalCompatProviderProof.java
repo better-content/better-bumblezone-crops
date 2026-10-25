@@ -41,6 +41,8 @@ public final class CanonicalCompatProviderProof {
         return path;
     }
     public static JsonObject observe(MinecraftServer server) throws Exception {
+        require(server.overworld().getChunkSource().getGenerator() instanceof net.minecraft.world.level.levelgen.FlatLevelSource,
+                "Authored crop fixture requires actual flat isolation, not unrelated normal terrain generation");
         Path receipt = ordinary(Path.of(System.getProperty(PREFIX + "binding")));
         byte[] bytes = Files.readAllBytes(receipt);
         require(bytes.length <= 64 * 1024 && sha(bytes).equals(System.getProperty(PREFIX + "binding.sha256")),

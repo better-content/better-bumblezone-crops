@@ -28,11 +28,12 @@ import net.minecraftforge.registries.ForgeRegistries;
 @GameTestHolder(BumblezoneCultivars.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class FlowerGameTests {
-    @GameTest(template = "empty", timeoutTicks = 20)
+    @GameTest(template = "flower_lit", timeoutTicks = 20)
     public static void flowerRelocationConservesQuantity(GameTestHelper helper) {
         var level = helper.getLevel();
         var player = FakePlayerFactory.get(level, new com.mojang.authlib.GameProfile(UUID.randomUUID(), "flower-move"));
         var pos = helper.absolutePos(new BlockPos(2, 1, 2));
+        var lamp = helper.absolutePos(new BlockPos(3, 1, 2));
         level.setBlockAndUpdate(pos.below(), Blocks.DIRT.defaultBlockState());
         var hit = new BlockHitResult(Vec3.atCenterOf(pos.below()), Direction.UP, pos.below(), false);
         for (var hand : InteractionHand.values()) {
@@ -52,9 +53,11 @@ public final class FlowerGameTests {
             helper.assertTrue(drops.stream().noneMatch(FlowerPolicy::isSeed), "Off-origin relocation generated seed");
             level.removeBlock(pos, false);
         }
-        // Author real fixture illumination only after all native flower conservation checks.
-        level.setBlockAndUpdate(pos.east(), Blocks.GLOWSTONE.defaultBlockState());
-        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(level.getRawBrightness(pos, 0) >= 8,
+        // The structure authors the lamp before execution, giving native lighting
+        // preparation a head start without extending the 20-tick test deadline.
+        helper.assertTrue(level.getBlockState(lamp).is(Blocks.GLOWSTONE), "Authored fixture lamp missing");
+        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(
+                level.getBrightness(net.minecraft.world.level.LightLayer.BLOCK, pos) == 14 && level.getRawBrightness(pos, 0) >= 8,
                 "Native fixture illumination not ready at " + pos + ": " + level.getRawBrightness(pos, 0)))
             .thenExecute(() -> {
                 player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.CARROT));
@@ -102,7 +105,7 @@ public final class FlowerGameTests {
                 negative.addProperty("raw_brightness", dirtBrightness); negative.addProperty("native_carrots_can_survive", dirtSurvival);
                 negative.addProperty("event_canceled", dirtEvent.isCanceled());
                 com.mojang.logging.LogUtils.getLogger().info("flower-food-policy-dirt-negative {}", negative);
-                helper.assertTrue(level.getBlockState(pos.east()).is(Blocks.GLOWSTONE)
+                helper.assertTrue(level.getBlockState(lamp).is(Blocks.GLOWSTONE)
                         && dirtBrightness >= 8 && dirtBrightness == diagnostic.get("raw_brightness").getAsInt(), "DIRT negative did not retain actual native illumination: " + negative);
                 helper.assertTrue(heldId.equals(ForgeRegistries.ITEMS.getKey(dirtEvent.getItemStack().getItem())), "DIRT negative held item drift");
                 helper.assertTrue(!dirtSurvival, "DIRT negative unexpectedly permits native carrot survival: " + negative);

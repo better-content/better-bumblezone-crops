@@ -18,12 +18,8 @@ def actualDirectory = {
         throw new GradleException('Native RunConfig working-directory drift: ' + directory)
     directory
 }
-def prepareProperties = { File properties ->
-    if (properties.exists() && !properties.isFile()) throw new GradleException('Native properties is not a regular file')
-    if (!properties.exists()) {
-        properties.parentFile.mkdirs()
-        properties.text = '# Fresh nonshipping native fixture: all settings retain Minecraft defaults.\n'
-    }
+def fixtureSetup = { String action, File directory ->
+    project.exec { commandLine('python3', '-B', project.file('scripts/prepare_native_fixture.py'), action, '--run', directory) }
 }
 def verifyDiagnostics = { String text ->
     def failures = text.readLines().findAll { line ->
@@ -31,18 +27,54 @@ def verifyDiagnostics = { String text ->
         boolean failedBlockEntity = blockEntity.find() && (
             blockEntity.group(2).startsWith('Tried to load a block entity for block ') && blockEntity.group(2).contains(' but failed at location ') ||
             blockEntity.group(2).startsWith('Tried to load a DUMMY block entity @ ') && blockEntity.group(2).contains(' but found not block entity block '))
-        failedBlockEntity || ['/ERROR]', '/FATAL]', '[ERROR]', '[FATAL]', 'Mixin apply failed', 'Could not decode GlobalLootModifier'].any { line.contains(it) }
+        failedBlockEntity || line.contains('com.electronwill.nightconfig.core.io.ParsingException:') ||
+            line.contains('mokiyoki.enhancedanimals.GeneticAnimals.addAnimalsToVillages(GeneticAnimals.java:') ||
+            ['/ERROR]', '/FATAL]', '[ERROR]', '[FATAL]', 'Mixin apply failed', 'Could not decode GlobalLootModifier'].any { line.contains(it) }
     }
     if (failures) throw new GradleException('Unexpected native failed-operation diagnostics: ' + failures.take(8))
 }
-tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+// FileWatcher can bypass Log4j. Retain and audit the actual child console as well.
+def nativeConsole = new File(attemptDirectory, 'native-console.log')
+def capture = [stream: null, task: null, output: null, error: null]
+def tee = { OutputStream original, OutputStream saved ->
+    new OutputStream() {
+        @Override void write(int value) { synchronized (saved) { original.write(value); saved.write(value) } }
+        @Override void write(byte[] bytes, int offset, int length) { synchronized (saved) { original.write(bytes, offset, length); saved.write(bytes, offset, length) } }
+        @Override void flush() { synchronized (saved) { original.flush(); saved.flush() } }
+        @Override void close() { flush() }
+    }
+}
+def closeConsole = tasks.register('closeCropsNativeConsole') {
+    doLast {
+        if (capture.stream != null) {
+            try { capture.stream.close() }
+            finally {
+                capture.task.standardOutput = capture.output
+                capture.task.errorOutput = capture.error
+                capture.stream = null; capture.task = null; capture.output = null; capture.error = null
+            }
+        }
+    }
+}
+tasks.matching { it.name == 'runGameTestServer' }.configureEach { nativeTask ->
+    finalizedBy(closeConsole)
     doFirst {
         def directory = actualDirectory()
         if (new File(directory, 'world').exists()) throw new GradleException('Refusing existing native world: ' + directory)
-        prepareProperties(new File(directory, 'server.properties'))
+        fixtureSetup('prepare', directory)
+        capture.stream = java.nio.file.Files.newOutputStream(nativeConsole.toPath(), java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE)
+        capture.task = nativeTask
+        capture.output = nativeTask.standardOutput ?: System.out
+        capture.error = nativeTask.errorOutput ?: System.err
+        standardOutput = tee(capture.output, capture.stream)
+        errorOutput = tee(capture.error, capture.stream)
         logger.lifecycle('Retained fresh actual Forge GameTest workingDirectory=' + directory)
     }
     doLast {
+        capture.stream.flush()
+        if (!nativeConsole.isFile() || nativeConsole.length() == 0) throw new GradleException('Missing native child console')
+        verifyDiagnostics(nativeConsole.text)
+        fixtureSetup('verify', actualDirectory())
         def log = new File(actualDirectory(), 'logs/latest.log')
         if (!log.isFile()) throw new GradleException('Missing actual native log: ' + log)
         verifyDiagnostics(log.text)
@@ -57,16 +89,11 @@ tasks.register('verifyNativeGameTestFixtureGuard') {
     group = 'verification'
     doLast {
         actualDirectory()
-        def properties = layout.buildDirectory.file('native-fixture-guard/' + UUID.randomUUID() + '/server.properties').get().asFile
-        prepareProperties(properties)
-        if (!properties.isFile() || !properties.readLines().every { !it || it.startsWith('#') })
-            throw new GradleException('Absent native settings did not retain native defaults')
-        def preserved = 'max-tick-time=123456\nlevel-name=retained-config\n'
-        properties.text = preserved
-        prepareProperties(properties)
-        if (properties.text != preserved) throw new GradleException('Existing native settings changed')
+        project.exec { commandLine('python3', '-B', '-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_prepare_native_fixture.py') }
         verifyDiagnostics('[00:00:00] [main/INFO] normal native setup')
         ['[00:00:00] [main/ERROR] synthetic guard input', '[00:00:00] [main/FATAL] synthetic guard input',
+         'com.electronwill.nightconfig.core.io.ParsingException: Invalid bare key: ["Variant',
+         '\tat TRANSFORMER/eanimod@0.11.12/mokiyoki.enhancedanimals.GeneticAnimals.addAnimalsToVillages(GeneticAnimals.java:177)',
          '[00:00:00] [Server thread/WARN] [minecraft/LevelChunk]: Tried to load a block entity for block minecraft:chest but failed at location BlockPos{x=0,y=0,z=0}',
          '[00:00:00] [Server thread/WARN] [net.minecraft.world.level.chunk.LevelChunk/]: Tried to load a DUMMY block entity @ BlockPos{x=0,y=0,z=0} but found not block entity block Block{minecraft:stone}',
          '[21Oct2026 09:46:03.457] [main/WARN] [net.minecraftforge.common.loot.LootModifierManager/]: Could not decode GlobalLootModifier with json id thirst:add_loot_shipwreck_supply - error: Unknown registry key in ResourceKey[minecraft:root / forge:global_loot_modifier_serializers]: thirst:add_loot_table'].each { invalid ->
@@ -74,7 +101,7 @@ tasks.register('verifyNativeGameTestFixtureGuard') {
             try { verifyDiagnostics(invalid) } catch (GradleException expected) { rejected = true }
             if (!rejected) throw new GradleException('Pure diagnostic guard failed to reject a failed native operation')
         }
-        logger.lifecycle('Native fixture pure guard: actual RunConfig + absent/default + preserve-existing + strict ERROR/FATAL and actual failed-WARN negatives PASS')
+        logger.lifecycle('Native fixture pure guard: actual RunConfig + complete flat/default-config setup + preserve-existing + strict ERROR/FATAL/failed-WARN/bare-operation negatives PASS')
     }
 }
 tasks.matching { it.name == 'verifyFast' }.configureEach { dependsOn('verifyNativeGameTestFixtureGuard') }
