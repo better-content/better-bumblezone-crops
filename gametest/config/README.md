@@ -21,7 +21,10 @@ Remaining Minecraft settings retain their defaults. Existing worlds are never
 reused, deleted or rewritten.
 
 The flower test now gets its real glowstone neighbor from `flower_lit.snbt`
-before execution rather than placing it after the conservation loop. Its runtime
+before execution rather than placing it after the conservation loop. SNBT y=0
+loads at y=1 relative to the structure block (`StructureBlockEntity.structurePos`
+is `(0,1,0)`); the test checks the actual lamp both before and after conservation.
+Its runtime
 deadline remains **20 ticks**, all twenty relocation checks and both hands remain,
 and readiness additionally requires actual block light **14**. The positive
 farmland and negative dirt cases still require identical observed native light.

@@ -84,7 +84,10 @@ class NativeFixtureTest(unittest.TestCase):
         source = (root / 'src/main/java/com/bettercontent/betterbumblezonecrops/FlowerGameTests.java').read_text()
         self.assertRegex(source, r'@GameTest\(template = "flower_lit", timeoutTicks = 20\)\s+public static void flowerRelocationConservesQuantity')
         template = (root / 'src/main/resources/gameteststructures/flower_lit.snbt').read_text()
-        self.assertIn('pos:[3,1,2]', template)
+        # StructureBlockEntity loads at structurePos=(0,1,0), while
+        # GameTestHelper.absolutePos is relative to the structure block itself.
+        self.assertIn('pos:[3,0,2]', template)
+        self.assertIn('helper.absolutePos(new BlockPos(3, 1, 2))', source)
         self.assertIn('Name:"minecraft:glowstone"', template)
         body = source.split('void flowerRelocationConservesQuantity', 1)[1].split('@GameTest', 1)[0]
         self.assertIn('cycle < 20', body)

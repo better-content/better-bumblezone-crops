@@ -33,7 +33,10 @@ public final class FlowerGameTests {
         var level = helper.getLevel();
         var player = FakePlayerFactory.get(level, new com.mojang.authlib.GameProfile(UUID.randomUUID(), "flower-move"));
         var pos = helper.absolutePos(new BlockPos(2, 1, 2));
+        // Native StructureBlockEntity places SNBT y=0 at structure-block y+1.
         var lamp = helper.absolutePos(new BlockPos(3, 1, 2));
+        helper.assertTrue(level.getBlockState(lamp).is(Blocks.GLOWSTONE),
+                "Authored fixture lamp missing before conservation at " + lamp + ": " + level.getBlockState(lamp));
         level.setBlockAndUpdate(pos.below(), Blocks.DIRT.defaultBlockState());
         var hit = new BlockHitResult(Vec3.atCenterOf(pos.below()), Direction.UP, pos.below(), false);
         for (var hand : InteractionHand.values()) {
@@ -55,7 +58,7 @@ public final class FlowerGameTests {
         }
         // The structure authors the lamp before execution, giving native lighting
         // preparation a head start without extending the 20-tick test deadline.
-        helper.assertTrue(level.getBlockState(lamp).is(Blocks.GLOWSTONE), "Authored fixture lamp missing");
+        helper.assertTrue(level.getBlockState(lamp).is(Blocks.GLOWSTONE), "Conservation changed fixture lamp at " + lamp);
         helper.startSequence().thenWaitUntil(() -> helper.assertTrue(
                 level.getBrightness(net.minecraft.world.level.LightLayer.BLOCK, pos) == 14 && level.getRawBrightness(pos, 0) >= 8,
                 "Native fixture illumination not ready at " + pos + ": " + level.getRawBrightness(pos, 0)))
