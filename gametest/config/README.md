@@ -12,9 +12,12 @@ That attempt exposed NightConfig's watcher reading a partial
 defaults, but release `20261025T135014Z-3098819` proved that preseeding alone does
 not prevent Forge's later unconditional REPLACE save racing Bumblezone's separate
 autoreloader. The production canonical compat provider now publishes those pinned
-Bumblezone writes atomically while retaining both original watchers. The native
-provider proof checks all five actual COMMON writers and a real Forge reload
-event after a byte-preserving save. No watcher, exception, severity or
+Bumblezone writes atomically, retaining manual autoreload and the original Forge
+ConfigWatcher on separate public watcher owners (NightConfig's shared addWatch
+silently keeps only the first callback for a path). The independent native proof
+requires inode replacement and unchanged bytes for all five actual COMMON saves,
+plus a real Forge reload event. It uses public Forge/filesystem APIs, without a
+provider compile dependency or any SDK role allowance. No watcher, exception, severity or
 failed-operation check is disabled. The helper still rejects changed seed bytes
 and any post-launch rewrite, while preserving authored ordinary files byte for byte.
 
