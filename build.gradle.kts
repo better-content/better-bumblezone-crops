@@ -7,6 +7,11 @@ group = "com.bettercontent"
 version = property("mod_version") as String
 base { archivesName.set(property("artifact_name") as String) }
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(17)); withSourcesJar() }
+val nurseryRegression = providers.gradleProperty("nurseryRegression").orNull == "true" ||
+    gradle.startParameter.taskNames.any { it.substringAfterLast(':') in setOf("runNurseryGameTestServer", "verifyNurseryFixtureIsolation") }
+require(!nurseryRegression || gradle.startParameter.taskNames.none {
+    it.substringAfterLast(':') in setOf("verifyFull", "runGameTestServer", "prepareRunGameTestServer")
+}) { "Nursery isolation cannot replace the default full canonical native profile" }
 // Native worlds are retained, never recycled or placed beneath Gradle's cleanable build tree.
 val gameTestAttempts = project.file("run-gametest/attempts").toPath()
 require(!Files.isSymbolicLink(gameTestAttempts) && !Files.isSymbolicLink(gameTestAttempts.parent)) { "GameTest attempt ancestry must not be a symlink" }
@@ -60,7 +65,11 @@ tasks.matching { it.name == "runGameTestServer" }.configureEach {
         logger.lifecycle("Native GameTest launching fresh world: ${gameTestAttempt.resolve("world").absolutePath}; structures=${gameTestAttempt.resolve("gameteststructures").absolutePath}")
     }
 }
-apply(from = "gradle/native-gametest-fixture.gradle")
-apply(from = "gradle/native-provider-closure.gradle")
-apply(from = "gradle/native-canonical-data.gradle")
-apply(from = "gradle/native-canonical-providers.gradle")
+if (nurseryRegression) {
+    apply(from = "gradle/nursery-regression.gradle")
+} else {
+    apply(from = "gradle/native-gametest-fixture.gradle")
+    apply(from = "gradle/native-provider-closure.gradle")
+    apply(from = "gradle/native-canonical-data.gradle")
+    apply(from = "gradle/native-canonical-providers.gradle")
+}

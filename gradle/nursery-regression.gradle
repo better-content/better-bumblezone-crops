@@ -1,0 +1,84 @@
+// Explicit owner-native regression only. No canonical pack snapshot or custom provider closure.
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.util.zip.ZipFile
+
+def fixture = sourceSets.create('nurseryGameTest')
+fixture.compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+fixture.runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+configurations[fixture.implementationConfigurationName].extendsFrom(configurations.implementation)
+configurations[fixture.runtimeOnlyConfigurationName].extendsFrom(configurations.runtimeOnly)
+
+def attempts = file('run-nursery-gametest/attempts').toPath().toAbsolutePath().normalize()
+for (def part = attempts; part != null; part = part.parent)
+    if (Files.isSymbolicLink(part)) throw new GradleException('Symlink nursery fixture ancestry: ' + part)
+Files.createDirectories(attempts)
+def directory = Files.createDirectory(attempts.resolve(UUID.randomUUID().toString())).toFile()
+def nativeRun = minecraft.runs.create('nurseryGameTestServer')
+nativeRun.parent(minecraft.runs.getByName('gameTestServer'))
+nativeRun.workingDirectory(directory)
+nativeRun.property('forge.enableGameTest', 'true')
+nativeRun.property('forge.gameTestServer', 'true')
+nativeRun.property('forge.enabledGameTestNamespaces', 'better_bumblezone_crops_nursery')
+nativeRun.arg('--nogui')
+nativeRun.mods.getByName(project.property('mod_id')).source(fixture)
+
+// Optional-integration catalogue tags are not the nursery algorithm's input. Scope this
+// fixture to owned replacement tags so absent third-party catalogues are not required SDKs.
+def prepare = tasks.register('prepareNurseryFixture') {
+    doLast {
+        if (new File(directory, 'world').exists() || new File(directory, 'server.properties').exists())
+            throw new GradleException('Refusing to reuse prepared nursery world: ' + directory)
+        new File(directory, 'eula.txt').text = 'eula=true\n'
+        new File(directory, 'server.properties').text = '''level-name=world
+level-seed=0
+level-type=minecraft:flat
+generator-settings={"layers":[{"block":"minecraft:bedrock","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:grass_block","height":1}],"biome":"minecraft:plains"}
+generate-structures=false
+spawn-protection=0
+max-tick-time=60000
+'''
+        project.copy { from('src/main/resources/gameteststructures/empty.snbt'); into(new File(directory, 'gameteststructures')) }
+        logger.lifecycle('Nursery native fresh UUID world: ' + directory + '; existing world=false; namespace=better_bumblezone_crops_nursery')
+    }
+}
+tasks.matching { it.name.startsWith('prepareRunNurseryGameTestServer') }.configureEach { dependsOn(prepare) }
+
+tasks.register('verifyNurseryFixtureIsolation') {
+    group = 'verification'
+    description = 'Checks that nursery fixture classes/resources never enter production runtime/source archives.'
+    dependsOn('stageRuntimeJar', 'sourcesJar')
+    doLast {
+        [file('build/reobfJar/output.jar'), tasks.named('sourcesJar').get().archiveFile.get().asFile].each { archive ->
+            new ZipFile(archive).withCloseable { zip ->
+                if (zip.entries().any { it.name.contains('NurseryFinalizationGameTests') || it.name == 'nursery-profile.txt' })
+                    throw new GradleException('Nursery fixture leaked into production archive: ' + archive)
+            }
+        }
+        logger.lifecycle('Nursery nonshipping runtime/source archive isolation PASS')
+    }
+}
+tasks.matching { it.name == 'runNurseryGameTestServer' }.configureEach {
+    group = 'verification'
+    description = 'Runs the isolated native nursery finalization/rewards regression in a fresh retained UUID world.'
+    dependsOn(fixture.classesTaskName, prepare, 'verifyNurseryFixtureIsolation')
+    classpath += fixture.runtimeClasspath
+    doFirst {
+        if (file(nativeRun.workingDirectory).canonicalFile != directory.canonicalFile ||
+                Files.exists(new File(directory, 'world').toPath(), LinkOption.NOFOLLOW_LINKS))
+            throw new GradleException('Nursery working-directory drift or existing world')
+        if (nativeRun.properties['forge.enabledGameTestNamespaces'] != 'better_bumblezone_crops_nursery')
+            throw new GradleException('Nursery namespace drift')
+    }
+    doLast {
+        def log = new File(directory, 'logs/latest.log')
+        if (!log.isFile() || !log.text.contains('All 1 required tests passed') || !log.text.contains('1 GAME TESTS COMPLETE'))
+            throw new GradleException('Expected exactly one required native nursery regression: ' + log)
+        [log, new File(directory, 'logs/debug.log')].each { evidence ->
+            if (!evidence.isFile() || evidence.length() == 0) throw new GradleException('Missing nursery native log: ' + evidence)
+            if (evidence.text =~ /(?m)^.*\[(?:[^\]\r\n]*\/)?(?:ERROR|FATAL)\].*$/)
+                throw new GradleException('Native nursery ERROR/FATAL evidence: ' + evidence)
+        }
+        logger.lifecycle('Owner-native nursery regression PASS; full canonical pack suite was not executed; evidence=' + directory)
+    }
+}
