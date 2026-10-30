@@ -29,7 +29,8 @@ public final class CultivarHarvestBoundary {
     String produce=WildCropForage.PRODUCE.get(id.toString());
     if(produce!=null)wild=new WildDrop(player,position,produce);
    }
-   BlockPos anchor=state.hasProperty(DoublePlantBlock.HALF)&&state.getValue(DoublePlantBlock.HALF)==DoubleBlockHalf.UPPER?position.below():position;
+   BlockPos nativeAnchor=state.hasProperty(DoublePlantBlock.HALF)&&state.getValue(DoublePlantBlock.HALF)==DoubleBlockHalf.UPPER?position.below():position;
+   BlockPos anchor=com.bettercontent.betterbumblezonecrops.api.CultivarAcquisition.aliasHarvestPosition(state,position).map(com.bettercontent.betterbumblezonecrops.api.CultivarAcquisition.HarvestPosition::anchor).orElse(nativeAnchor);
    BlockState base=anchor.equals(position)?state:level.getBlockState(anchor);
    var cultivar=CultivarCatalog.byPlant(base.getBlock());var planting=CultivarPlantings.lookup(level,anchor,base);
    if(cultivar!=null&&planting!=null&&CultivarLootModifier.isMature(base,cultivar.maturityRule()))harvest=new Harvest(level,anchor.immutable(),cultivar,planting);}
@@ -50,6 +51,6 @@ public final class CultivarHarvestBoundary {
   var stack=ACTIVE.get();if(stack.isEmpty())return;
   var harvest=stack.peek().orElse(null);if(harvest==null||world!=harvest.level())return;
   String itemId=ForgeRegistries.ITEMS.getKey(item.getItem().getItem()).toString();
-  if(harvest.cultivar().produce().contains(itemId))CultivarPlantings.harvested(harvest.level(),harvest.position(),harvest.planting());
+  if(CultivarCatalog.produces(harvest.cultivar(),itemId))CultivarPlantings.harvested(harvest.level(),harvest.position(),harvest.planting());
  }
 }

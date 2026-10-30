@@ -24,11 +24,13 @@ public final class CultivarPlantings extends SavedData {
  @Override public CompoundTag save(CompoundTag root){var rows=new ListTag();plantings.forEach((pos,plant)->{var row=new CompoundTag();row.putLong("pos",pos);row.putUUID("owner",plant.owner());row.putString("cultivar",plant.cultivar());row.putUUID("operation",plant.operation());rows.add(row);});root.put("plants",rows);return root;}
  public static void source(ItemStack seed,String dimension){if(dimension.equals("the_bumblezone:the_bumblezone"))seed.getOrCreateTag().putString(ORIGIN,dimension);}
  public static void planted(ServerPlayer player,BlockPos pos,BlockState state,ItemStack seed){
+  // Multipart alias callbacks must not replace/credit provenance once per segment.
+  if(com.bettercontent.betterbumblezonecrops.api.CultivarAcquisition.aliasHarvestPosition(state,pos).filter(part->!part.primary()).isPresent())return;
   var existing=get(player.serverLevel());if(existing.plantings.remove(pos.asLong())!=null)existing.setDirty();
   if(player.isCreative()||player.isSpectator()||player.level().dimension()!=Level.OVERWORLD)return;
   var cultivar=CultivarCatalog.byPlant(state.getBlock());
   if(cultivar==null||seed.getTag()==null||!seed.getTag().getString(ORIGIN).equals("the_bumblezone:the_bumblezone")
-    ||!cultivar.seedItem().equals(ForgeRegistries.ITEMS.getKey(seed.getItem()).toString()))return;
+    ||!CultivarCatalog.isSeed(cultivar,ForgeRegistries.ITEMS.getKey(seed.getItem()).toString()))return;
   var data=get(player.serverLevel());var planting=new Planting(player.getUUID(),cultivar.id(),UUID.randomUUID());data.plantings.put(pos.asLong(),planting);data.setDirty();
   var log=com.bettercontent.betterbumblezonecrops.diagnostics.RuntimeDiagnostics.LOG;
   if(log.enabled("planting"))com.bettercontent.betterbumblezonecrops.diagnostics.FeatureObservation.planting(log,

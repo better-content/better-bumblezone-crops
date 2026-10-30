@@ -1,5 +1,6 @@
 package com.bettercontent.betterbumblezonecrops;
 
+import com.bettercontent.betterbumblezonecrops.api.CultivarAcquisition;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.resources.ResourceLocation;
@@ -36,9 +37,23 @@ public final class CultivarCatalog {
         return Map.copyOf(result);
     }
 
-    public static CultivarDefinition bySeed(String id) { return BY_SEED.get(id); }
-    public static CultivarDefinition byPlant(String id) { return BY_PLANT.get(id); }
+    public static CultivarDefinition bySeed(String id) {
+        var alias = CultivarAcquisition.seedAlias(id);
+        return alias == null ? BY_SEED.get(id) : alias;
+    }
+    public static CultivarDefinition byPlant(String id) {
+        var alias = CultivarAcquisition.plantAlias(id);
+        return alias == null ? BY_PLANT.get(id) : alias;
+    }
     public static CultivarDefinition byPlant(Block block) { return BlockIndex.BY_PLANT.get(block); }
+    public static boolean isSeed(CultivarDefinition cultivar, String itemId) {
+        if (cultivar.seedItem().equals(itemId)) return true;
+        var alias = CultivarAcquisition.seedAlias(itemId);
+        return alias != null && cultivar.id().equals(alias.id());
+    }
+    public static boolean produces(CultivarDefinition cultivar, String itemId) {
+        return cultivar.produce().contains(itemId) || CultivarAcquisition.produces(cultivar, itemId);
+    }
 
     private static final class BlockIndex {
         private static final Map<Block, CultivarDefinition> BY_PLANT = index();
@@ -46,6 +61,10 @@ public final class CultivarCatalog {
         private static Map<Block, CultivarDefinition> index() {
             Map<Block, CultivarDefinition> result = new LinkedHashMap<>();
             CultivarCatalog.BY_PLANT.forEach((id, cultivar) -> {
+                Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
+                if (block != null) result.putIfAbsent(block, cultivar);
+            });
+            CultivarAcquisition.plantAliases().forEach((id, cultivar) -> {
                 Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(id));
                 if (block != null) result.putIfAbsent(block, cultivar);
             });

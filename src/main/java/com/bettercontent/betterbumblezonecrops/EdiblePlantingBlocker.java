@@ -12,8 +12,8 @@ public final class EdiblePlantingBlocker {
         if (heldId == null) return;
         for (CultivarDefinition cultivar : CultivarCatalog.ALL) {
             // A flower item relocates an existing flower; only seed production is origin-gated.
-            if (cultivar.growthForm().equals("flower") || cultivar.seedItem().equals(heldId.toString())
-                    || !cultivar.produce().contains(heldId.toString())) continue;
+            if (cultivar.growthForm().equals("flower") || CultivarCatalog.isSeed(cultivar, heldId.toString())
+                    || !CultivarCatalog.produces(cultivar, heldId.toString())) continue;
             var pos = event.getPos().relative(event.getFace());
             for (String plantId : cultivar.plantBlocks()) {
                 var block = ForgeRegistries.BLOCKS.getValue(new net.minecraft.resources.ResourceLocation(plantId));

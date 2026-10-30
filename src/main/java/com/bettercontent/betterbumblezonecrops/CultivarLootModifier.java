@@ -57,7 +57,15 @@ public final class CultivarLootModifier extends LootModifier {
         if (upperHalf && !cultivar.growthForm().equals("flower")) return loot;
         var seed = ForgeRegistries.ITEMS.getValue(new ResourceLocation(cultivar.seedItem()));
         if (seed == null) return loot;
-        loot.removeIf(stack -> stack.is(seed));
+        // Canonical and legacy seed identities enter the SAME single propagation roll.
+        loot.removeIf(stack -> {
+            ResourceLocation itemId = ForgeRegistries.ITEMS.getKey(stack.getItem());
+            return stack.is(seed) || itemId != null && CultivarCatalog.isSeed(cultivar, itemId.toString());
+        });
+        // Authored multipart aliases (KC rice has THREE integer locations, not HALF):
+        // only the primary block may roll or reimburse; others suppress ALL propagules.
+        if (com.bettercontent.betterbumblezonecrops.api.CultivarAcquisition
+                .aliasHarvestPosition(state, BlockPos.ZERO).filter(part -> !part.primary()).isPresent()) return loot;
         // Upper halves still undergo seed suppression, but never get a second propagation roll.
         if (cultivar.growthForm().equals("flower")) {
             loot.removeIf(stack -> FlowerPolicy.isSeed(stack));
@@ -87,6 +95,15 @@ public final class CultivarLootModifier extends LootModifier {
             loot.add(stack);
         }
         return loot;
+    }
+
+    /** Explicit NEW output only: no sourced-planting refund and no extra probability draw.
+     * Existing crop loot still uses the unchanged exact seedCount quota/roll below.
+     */
+    public static boolean allowsNewSeedProduction(CultivarDefinition cultivar, String dimension) {
+        java.util.Objects.requireNonNull(cultivar); java.util.Objects.requireNonNull(dimension);
+        return seedCount(true, cultivar.originDimensions().contains(dimension),
+                cultivar.growthForm().equals("persistent-harvest"), false, 0) > 0;
     }
 
     /** Relocation is free; multiplication (including instant place/break farming) is Bumblezone-only. */
