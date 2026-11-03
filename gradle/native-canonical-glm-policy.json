@@ -12149,11 +12149,6 @@
       "archive": "archive://clockwork-0.5.6.jar"
     },
     {
-      "path": "root://mods/create-creating-space.pw.toml",
-      "sha256": "a19a1352ab8936483bf0bf5376ff284e5320d63a8698519b41de37294dc1b5bf",
-      "archive": "archive://creatingspace-1.20.1-1.7.13.jar"
-    },
-    {
       "path": "root://mods/create-deco.pw.toml",
       "sha256": "fee58a333eaf51d4862fee34fe8ba7cb70140500023e06aca3c9fcf0e0f34719",
       "archive": "archive://createdeco-2.0.3-1.20.1-forge.jar"
@@ -12874,11 +12869,6 @@
       "archive": "archive://OctoLib-FORGE-0.5.0.1+1.20.1.jar"
     },
     {
-      "path": "root://mods/simpledaylengthextender.pw.toml",
-      "sha256": "d1bd9e6dc2e7e72a77c5a7a71709d2224069b9a976a648de96da1f1b8c2fbc7d",
-      "archive": "archive://SimpleDayLengthExtender-1.2.1-Forge-1.20.1.jar"
-    },
-    {
       "path": "root://mods/sleepingoverhaul2.pw.toml",
       "sha256": "0cab9964d74302b2b3cab1d89252eaa443a2a69681c4736b048c2b278a9a993c",
       "archive": "archive://SleepingOverhaul-2.1.0-Forge-1.20.1.jar"
@@ -12990,7 +12980,7 @@
     },
     {
       "path": "root://mods/the-one-probe.pw.toml",
-      "sha256": "4f5cc5b736b3133d4f24517e13033b06691801d352147cfad9b507944e4c88af",
+      "sha256": "97063e6b0b10ed95e42c1d4954ab577f8d6e94a79c0a8a93206b35475dce1460",
       "archive": "archive://theoneprobe-1.20.1-10.0.3.jar"
     },
     {
@@ -13114,8 +13104,8 @@
       "archive": "archive://valhelsia_core-forge-1.20.1-1.1.2.jar"
     },
     {
-      "path": "root://mods/valkyrien-skies.pw.toml",
-      "sha256": "81484132585ff44f11984c45cf4bf8f529faee1bcb54335f4ed1c7f7ebf6b9c0",
+      "path": "root://mods/valkyrienskies-120-2.4.11-bc-interface.3.jar",
+      "sha256": "97e1c1a0dc9cc20c3506fc3e1edf796fd9b21f224135ee7c38be7f8d63e0e946",
       "archive": "archive://valkyrienskies-120-2.4.11.jar"
     },
     {

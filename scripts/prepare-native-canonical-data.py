@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import tomllib
@@ -117,7 +118,9 @@ if __name__ == '__main__':
         for p in [destination, *destination.parents]:
             assert not p.is_symlink(), 'Snapshot ancestry is a symlink'
         assert not destination.exists(), 'Never adopt an existing snapshot'
-        tasks = json.loads(Path('/home/dev/.worklane/disposable-tasks.json').read_text())['tasks']
+        registry = Path(os.environ.get('BC_RETENTION_REGISTRY', '/home/dev/.worklane/disposable-tasks.json'))
+        assert registry.is_absolute(), 'Retention registry must be explicitly absolute'
+        tasks = json.loads(checked_file(registry))['tasks']
         task = tasks[args.task]
         assert task['state'] == 'active' and task['owner'] == args.owner
         assert any(destination.is_relative_to(Path(p)) for p in task['paths']), 'Register inputs before creating them'
