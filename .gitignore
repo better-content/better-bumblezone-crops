@@ -7,3 +7,5 @@ run-nursery-gametest/
 logs/
 __pycache__/
 *.py[cod]
+# Locally cached binaries; Packwiz metadata/hashes remain tracked separately.
+/gradle/wrapper/gradle-wrapper.jar
