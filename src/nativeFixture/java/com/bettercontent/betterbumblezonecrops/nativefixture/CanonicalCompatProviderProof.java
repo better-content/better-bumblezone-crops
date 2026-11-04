@@ -25,7 +25,7 @@ public final class CanonicalCompatProviderProof {
     private static final String PREFIX = "bc.crops.providers.";
     private static final List<String> IDS = List.of("better_compat_fixes", "better_gameplay_notices");
     private static final List<String> REPOSITORIES = List.of("better-compat-fixes", "better-gameplay-notices");
-    private static final List<String> ARTIFACTS = List.of("better-compat-fixes-0.1.9.jar", "better-gameplay-notices-1.0.0.jar");
+    private static final List<String> ARTIFACTS = List.of("better-compat-fixes-0.1.9.jar", "better-gameplay-notices-1.0.1.jar");
     private CanonicalCompatProviderProof() {}
     private static void require(boolean value, String message) {
         if (!value) throw new IllegalStateException(message);
