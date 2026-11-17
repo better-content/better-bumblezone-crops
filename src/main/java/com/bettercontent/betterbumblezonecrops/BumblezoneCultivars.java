@@ -47,6 +47,7 @@ public final class BumblezoneCultivars {
 
     public BumblezoneCultivars() {
         com.bettercontent.betterbumblezonecrops.diagnostics.RuntimeDiagnostics.initialize();
+        if (net.minecraftforge.fml.ModList.get().isLoaded("kaleidoscope_cookery")) NativeCultivarAliases.register();
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(bus); BLOCKS.register(bus); BLOCK_ENTITIES.register(bus); LOOT_MODIFIERS.register(bus);
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
